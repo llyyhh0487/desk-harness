@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>关闭 DESK HARNESS</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: transparent;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .card {
+    width: 400px;
+    background: linear-gradient(160deg, rgba(16, 22, 42, 0.97), rgba(8, 12, 24, 0.97));
+    border: 1px solid rgba(77, 107, 254, 0.4);
+    border-radius: 16px;
+    padding: 22px 24px 18px;
+    box-shadow: 0 18px 60px rgba(4, 8, 20, 0.55), 0 0 0 1px rgba(0, 229, 255, 0.06);
+    color: #d7e2ff;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #4d6bfe, #00e5ff, transparent);
+  }
+  .glow {
+    position: absolute; width: 260px; height: 260px; border-radius: 50%;
+    filter: blur(70px); opacity: 0.22; pointer-events: none;
+  }
+  .glow.a { right: -100px; top: -120px; background: #4d6bfe; }
+  .glow.b { left: -110px; bottom: -130px; background: #00e5ff; }
+  .title { font-size: 16px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px; position: relative; }
+  .desc { font-size: 12.5px; line-height: 1.7; color: #9fb4e8; margin-bottom: 16px; position: relative; }
+  .desc b { color: #cdd9ff; }
+  .row { display: flex; gap: 10px; position: relative; }
+  button {
+    flex: 1;
+    padding: 9px 0;
+    font-size: 12.5px;
+    border-radius: 9px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.08s, filter 0.15s, background 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-tray {
+    background: linear-gradient(90deg, #4d6bfe, #00b8e5);
+    color: #fff; font-weight: 600;
+  }
+  .btn-tray:hover { filter: brightness(1.15); }
+  .btn-quit {
+    background: rgba(255, 92, 122, 0.12);
+    border-color: rgba(255, 92, 122, 0.4);
+    color: #ff9fb1;
+  }
+  .btn-quit:hover { background: rgba(255, 92, 122, 0.22); }
+  .btn-cancel {
+    background: rgba(120, 140, 200, 0.12);
+    border-color: rgba(120, 140, 200, 0.3);
+    color: #b9c6e8;
+  }
+  .btn-cancel:hover { background: rgba(120, 140, 200, 0.22); }
+  .remember {
+    display: flex; align-items: center; gap: 7px;
+    margin-top: 14px; font-size: 11.5px; color: #7b8bb8; cursor: pointer;
+    position: relative;
+  }
+  .remember input { accent-color: #4d6bfe; width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="glow a"></div>
+    <div class="glow b"></div>
+    <div class="title">关闭 DESK HARNESS</div>
+    <div class="desc">
+      选择 <b>最小化到后台</b>：窗口隐藏，本地服务与任务继续运行，可通过托盘图标或 <b>Ctrl+Alt+D</b> 随时唤回。<br />
+      选择 <b>直接关闭程序</b>：退出桌面版，并停止由其拉起的本地服务。
+    </div>
+    <div class="row">
+      <button class="btn-tray" id="tray">最小化到后台</button>
+      <button class="btn-quit" id="quit">直接关闭</button>
+      <button class="btn-cancel" id="cancel">取消</button>
+    </div>
+    <label class="remember"><input type="checkbox" id="remember" /> 记住我的选择，下次不再询问</label>
+  </div>
+  <script>
+    (function () {
+      function choose(choice) {
+        var remember = document.getElementById('remember').checked;
+        if (window.desktop && window.desktop.closeChoice) {
+          window.desktop.closeChoice({ choice: choice, remember: remember });
+        } else {
+          window.close();
+        }
+      }
+      document.getElementById('tray').addEventListener('click', function () { choose('tray'); });
+      document.getElementById('quit').addEventListener('click', function () { choose('quit'); });
+      document.getElementById('cancel').addEventListener('click', function () { choose('cancel'); });
+    })();
+  </script>
+</body>
+</html>

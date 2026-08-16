@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+shot-*.png
+test-shot-*.png
+.DS_Store
+Thumbs.db
+build/tools/node_modules/
+deepseekharness-desktop/
+tu-v18/

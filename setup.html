@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>首次运行环境部署</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #05080f; color: #d7e2ff;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    user-select: none;
+    display: flex; flex-direction: column;
+  }
+  .grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(77,107,254,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(77,107,254,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .wrap { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; padding: 26px 30px 20px; }
+  .title { font-size: 19px; font-weight: 700; letter-spacing: 1px; color: #cdd9ff; }
+  .sub { font-size: 12.5px; color: #8fa2d4; margin-top: 6px; line-height: 1.6; }
+  .checks { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .ck {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid rgba(120,140,200,0.16); border-radius: 10px;
+    padding: 9px 14px; font-size: 13px; background: rgba(12,16,30,0.5);
+  }
+  .ck .ico {
+    width: 20px; height: 20px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(143,162,212,0.4); color: #8fa2d4; font-size: 12px;
+  }
+  .ck.ok .ico { border-color: rgba(64,224,160,0.6); color: #40e0a0; }
+  .ck.no .ico { border-color: rgba(255,196,90,0.7); color: #ffc45a; }
+  .ck.busy .ico { border-color: rgba(77,107,254,0.8); color: #4d6bfe; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ck .name { font-weight: 600; color: #c9d6ff; }
+  .ck .val { margin-left: auto; font-size: 11.5px; color: #8fa2d4; }
+  .ck.no .val { color: #ffc45a; }
+  .logbox {
+    flex: 1; min-height: 120px; margin-top: 14px;
+    border: 1px solid rgba(120,140,200,0.16); border-radius: 10px;
+    background: rgba(6,10,20,0.72); padding: 10px 12px;
+    overflow-y: auto; font-family: Consolas, monospace; font-size: 11.5px;
+    color: #9fb4e8; line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+    display: none;
+  }
+  .logbox.show { display: block; }
+  .bar { height: 4px; border-radius: 2px; background: rgba(77,107,254,0.15); overflow: hidden; margin-top: 10px; display: none; }
+  .bar.show { display: block; }
+  .bar i {
+    display: block; height: 100%; width: 40%;
+    background: linear-gradient(90deg, transparent, #4d6bfe, #00e5ff, transparent);
+    animation: slide 1.4s ease-in-out infinite;
+  }
+  @keyframes slide { from { transform: translateX(-120%); } to { transform: translateX(400%); } }
+  .btns { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+  button {
+    font-size: 13px; padding: 9px 20px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(143,162,212,0.4); background: transparent; color: #9fb4e8;
+    font-family: inherit; transition: all 0.2s;
+  }
+  button:hover { background: rgba(143,162,212,0.12); }
+  button.primary {
+    border-color: rgba(77,107,254,0.7);
+    background: linear-gradient(90deg, rgba(77,107,254,0.4), rgba(0,229,255,0.25));
+    color: #eef2ff; font-weight: 600;
+  }
+  button.primary:hover { box-shadow: 0 0 18px rgba(77,107,254,0.55); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  /* 安装目录行 */
+  .dirrow {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px;
+    border: 1px solid rgba(120,140,200,0.16); border-radius: 10px;
+    background: rgba(12,16,30,0.5); padding: 9px 14px; font-size: 12.5px;
+  }
+  .dirlab { flex: none; color: #c9d6ff; font-weight: 600; }
+  .dirval { flex: 1; min-width: 0; color: #9fb4e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+    <div class="title">🚀 首次运行 · 环境部署</div>
+    <div class="sub">未检测到本机的 DeepSeek Harness（dsh 后端），需要部署运行环境。<br/>环境将装入「安装目录」下的 deepseekharness-desktop 子目录（安装位置由安装包决定），确认后点击「同意并一键安装配置」，自动完成 Node.js / pnpm / npx / 项目依赖安装，全程无需手动操作。</div>
+
+    <div class="checks" id="checks">
+      <div class="ck" id="ck-node"><span class="ico" id="ck-node-ico">⋯</span><span class="name">Node.js（≥ v22.19.0）</span><span class="val" id="ck-node-val"></span></div>
+      <div class="ck" id="ck-pnpm"><span class="ico" id="ck-pnpm-ico">⋯</span><span class="name">pnpm</span><span class="val" id="ck-pnpm-val"></span></div>
+      <div class="ck" id="ck-npx"><span class="ico" id="ck-npx-ico">⋯</span><span class="name">npx</span><span class="val" id="ck-npx-val"></span></div>
+      <div class="ck" id="ck-deps"><span class="ico" id="ck-deps-ico">⋯</span><span class="name">项目依赖（@deepseek-ai/dsh）</span><span class="val" id="ck-deps-val"></span></div>
+    </div>
+
+    <div class="dirrow">
+      <span class="dirlab">部署位置</span>
+      <span class="dirval" id="dirval"></span>
+    </div>
+    <div class="sub" style="margin-top:6px;font-size:11px;color:#7d8bab">安装位置由<b>安装包</b>选择，此处为固定位置：环境装入其下的 <b>deepseekharness-desktop</b> 子目录；卸载时仅删除该子目录，目录内其他文件不受影响。</div>
+
+    <div class="logbox" id="logbox"></div>
+    <div class="bar" id="bar"><i></i></div>
+
+    <div class="btns">
+      <button id="btn-quit">退出</button>
+      <button id="btn-log" style="display:none">打开日志</button>
+      <button class="primary" id="btn-go">同意并一键安装配置</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var nodeVer = qs.get('nodeVer') || '';
+  var pnpmVer = qs.get('pnpmVer') || '';
+  var npxVer = qs.get('npxVer') || '';
+  var deployDir = '';
+  try { deployDir = decodeURIComponent(qs.get('deployDir') || ''); } catch (e) { deployDir = qs.get('deployDir') || ''; }
+  var logEl = document.getElementById('logbox');
+  var barEl = document.getElementById('bar');
+  var btnGo = document.getElementById('btn-go');
+  var btnQuit = document.getElementById('btn-quit');
+  var btnLog = document.getElementById('btn-log');
+  var dirVal = document.getElementById('dirval');
+  var busy = false;
+  if (dirVal) dirVal.textContent = deployDir || '\u9ED8\u8BA4\u4F4D\u7F6E';
+
+  function setCk(which, state, text) {
+    var row = document.getElementById('ck-' + which);
+    var ico = document.getElementById('ck-' + which + '-ico');
+    var val = document.getElementById('ck-' + which + '-val');
+    row.className = 'ck ' + state;
+    ico.textContent = state === 'ok' ? '\u2713' : (state === 'no' ? '!' : '\u22EF');
+    if (text) val.textContent = text;
+  }
+  function logLine(t) {
+    logEl.classList.add('show');
+    var d = document.createElement('div');
+    d.textContent = t;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  setCk('node', nodeVer ? 'ok' : 'no', nodeVer || '\u672A\u68C0\u6D4B\u5230');
+  setCk('pnpm', pnpmVer ? 'ok' : 'no', pnpmVer || '\u672A\u68C0\u6D4B\u5230');
+  setCk('npx', npxVer ? 'ok' : 'no', npxVer || '\u672A\u68C0\u6D4B\u5230\uFF08\u90E8\u7F72\u65F6\u81EA\u52A8\u5B89\u88C5\uFF09');
+  setCk('deps', 'no', '\u5C06\u5728\u90E8\u7F72\u4E2D\u5B89\u88C5');
+
+  if (window.desktop && window.desktop.onSetupState) {
+    window.desktop.onSetupState(function (s) {
+      if (!s) return;
+      if (s.phase === 'busy') {
+        busy = true;
+        btnGo.disabled = true;
+        barEl.classList.add('show');
+        logLine(s.line || '');
+      } else if (s.phase === 'done') {
+        busy = false;
+        barEl.classList.remove('show');
+        logLine(s.line || '');
+        if (s.ok) {
+          setCk('deps', 'ok', '\u5DF2\u5B89\u88C5');
+          setCk('npx', 'ok', '\u5DF2\u5B89\u88C5');
+          btnQuit.style.display = 'none';
+          btnGo.disabled = true;
+          btnGo.textContent = '\u90E8\u7F72\u5B8C\u6210\uFF0C\u6B63\u5728\u8FDB\u5165\u2026';
+        } else {
+          btnGo.disabled = false;
+          btnGo.textContent = '\u91CD\u8BD5\u5B89\u88C5';
+          btnLog.style.display = '';
+        }
+      }
+    });
+  }
+  btnGo.addEventListener('click', function () {
+    if (busy) return;
+    btnLog.style.display = 'none';
+    logLine('\u5F00\u59CB\u90E8\u7F72\uFF08\u5EFA\u8BAE\u4FDD\u6301\u7F51\u7EDC\u901A\u7545\uFF09\u2026');
+    if (window.desktop && window.desktop.setupStart) window.desktop.setupStart();
+    else { logLine('\u65E0\u6CD5\u4E0E\u4E3B\u8FDB\u7A0B\u901A\u4FE1\uFF0C\u8BF7\u91CD\u65B0\u542F\u52A8\u3002'); }
+  });
+  btnQuit.addEventListener('click', function () {
+    if (window.desktop && window.desktop.setupQuit) window.desktop.setupQuit();
+  });
+  btnLog.addEventListener('click', function () {
+    if (window.desktop && window.desktop.setupOpenLog) window.desktop.setupOpenLog();
+  });
+})();
+</script>
+</body>
+</html>

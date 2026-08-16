@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>服务端口设置</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #0b0e17;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    color: #d7e2ff;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .panel { width: 100%; padding: 26px 30px 18px; }
+  .label { font-size: 13px; color: #9fb4e8; margin-bottom: 10px; }
+  input {
+    width: 100%; padding: 10px 12px; font-size: 15px;
+    background: rgba(77, 107, 254, 0.08);
+    border: 1px solid rgba(77, 107, 254, 0.35); border-radius: 8px;
+    color: #eaf0ff; outline: none; letter-spacing: 1px;
+  }
+  input:focus { border-color: #4d6bfe; box-shadow: 0 0 0 3px rgba(77,107,254,0.18); }
+  .hint { font-size: 11px; color: #45537a; margin-top: 10px; line-height: 1.6; }
+  .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  button {
+    padding: 8px 22px; font-size: 13px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; background: rgba(77,107,254,0.15); color: #c9d6ff;
+  }
+  button:hover { background: rgba(77,107,254,0.28); }
+  button.primary {
+    background: linear-gradient(90deg, #4d6bfe, #00b8e5); color: #fff; font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.15); }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="label">DESK HARNESS 本地服务端口（1–65535）</div>
+    <input id="port" type="number" min="1" max="65535" />
+    <div class="hint">修改后桌面版会重新连接服务；若端口无服务，将自动启动新的服务实例。</div>
+    <div class="row">
+      <button id="cancel">取消</button>
+      <button id="ok" class="primary">确定</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var input = document.getElementById('port');
+      input.value = params.get('port') || '3080';
+      input.focus(); input.select();
+      function submit() {
+        var v = parseInt(input.value, 10);
+        if (!Number.isInteger(v) || v < 1 || v > 65535) {
+          input.style.borderColor = '#ff5c7a';
+          return;
+        }
+        if (window.desktop && window.desktop.submitPort) window.desktop.submitPort(v);
+      }
+      document.getElementById('ok').addEventListener('click', submit);
+      document.getElementById('cancel').addEventListener('click', function () { window.close(); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') submit();
+        if (e.key === 'Escape') window.close();
+      });
+    })();
+  </script>
+</body>
+</html>

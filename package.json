@@ -1,0 +1,98 @@
+{
+  "name": "deepseekharness-desktop",
+  "version": "1.0.0",
+  "description": "DESK HARNESS — DeepSeek Harness 的 Windows 桌面壳（保留网页版全部功能）",
+  "private": true,
+  "main": "main.js",
+  "author": "DESK HARNESS contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/llyyhh0487/desk-harness.git"
+  },
+  "homepage": "https://github.com/llyyhh0487/desk-harness#readme",
+  "bugs": {
+    "url": "https://github.com/llyyhh0487/desk-harness/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "electron",
+    "desktop",
+    "windows"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --win nsis",
+    "pack:dir": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.deepseek.harness.desktop",
+    "productName": "DESK HARNESS",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "asar": true,
+    "compression": "normal",
+    "files": [
+      "main.js",
+      "preload.js",
+      "fx.js",
+      "fx.css",
+      "dock.html",
+      "dock.js",
+      "term-helper.js",
+      "splash.html",
+      "prompt.html",
+      "close-dialog.html",
+      "setup.html",
+      "scripts/restart-service.ps1",
+      "build/icon.ico",
+      "build/logo-256.png",
+      "node_modules/xterm/**"
+    ],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DESK HARNESS",
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh",
+      "artifactName": "desk-harness-setup-${version}.${ext}",
+      "uninstallDisplayName": "DESK HARNESS"
+    }
+  },
+  "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3"
+  },
+  "dependencies": {
+    "xterm": "5.3.0"
+  }
+}
