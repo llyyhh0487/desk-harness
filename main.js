@@ -263,6 +263,53 @@ function loadBg() {
 // ---------------------------------------------------------------------------
 // 后端探测 / 启动
 // ---------------------------------------------------------------------------
+// 全盘两级扫描：在「每个盘符根目录 → 其一层子目录 → 再一层子目录」里找
+// node_modules\@deepseek-ai\dsh\lib\bin.js。只枚举目录名（不递归文件），
+// 秒级完成；覆盖 D:\deepseekharness、D:\DESK\DESK HARNESS\xxx 等任意自定义位置。
+// 结果按会话缓存（bootstrap 多次调用只扫一次）
+let driveScanCache = null;
+let driveScanDone = false;
+function scanDrivesForDsh() {
+  if (driveScanDone) return driveScanCache;
+  driveScanDone = true;
+  const rel = path.join('node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js');
+  const t0 = Date.now();
+  const SKIP = new Set(['$recycle.bin', 'system volume information', 'windows', 'program files', 'program files (x86)']);
+  const check = (base) => {
+    try {
+      const p = path.join(base, rel);
+      if (fs.existsSync(p)) { log('drive scan hit:', p); return p; }
+    } catch { /* ignore */ }
+    return null;
+  };
+  try {
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+      const root = ch + ':\\';
+      if (!fs.existsSync(root)) continue;
+      let hit = check(root);
+      if (hit) { driveScanCache = hit; return hit; }
+      let l1 = [];
+      try { l1 = fs.readdirSync(root, { withFileTypes: true }); } catch { /* ignore */ }
+      for (const e of l1.slice(0, 200)) {
+        if (!e.isDirectory() || SKIP.has(e.name.toLowerCase())) continue;
+        const l1p = path.join(root, e.name);
+        hit = check(l1p);
+        if (hit) { driveScanCache = hit; return hit; }
+        let l2 = [];
+        try { l2 = fs.readdirSync(l1p, { withFileTypes: true }); } catch { /* ignore */ }
+        for (const s of l2.slice(0, 100)) {
+          if (!s.isDirectory() || SKIP.has(s.name.toLowerCase())) continue;
+          hit = check(path.join(l1p, s.name));
+          if (hit) { driveScanCache = hit; return hit; }
+        }
+      }
+    }
+  } catch (e) { log('drive scan error:', e.message); }
+  driveScanCache = null;
+  log('drive scan: no dsh found in', Date.now() - t0, 'ms');
+  return null;
+}
+
 function findServerBin() {
   // 1) 手动覆盖（config.json → serverBin），适配任意目录布局
   if (cfg.serverBin && fs.existsSync(cfg.serverBin)) return cfg.serverBin;
@@ -299,6 +346,9 @@ function findServerBin() {
   for (const base of candidates) {
     if (fs.existsSync(path.join(base, rel))) return path.join(base, rel);
   }
+  // 4) 全盘两级扫描：任意盘符任意目录的自定义安装（D:\deepseekharness、D:\DESK\... 等）
+  const scanHit = scanDrivesForDsh();
+  if (scanHit) return scanHit;
   return null;
 }
 
