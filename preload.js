@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('desktop', {
   // 外链 / 关闭选择
   openExternal: (url) => ipcRenderer.send('win:open-external', url),
   closeChoice: (payload) => ipcRenderer.send('close:choice', payload),
+  // 页面内提示（「已更换成功」toast）
+  onAppToast: (cb) => ipcRenderer.on('app:toast', (_e, t) => cb(t)),
   // 会话总览
   sessionsList: () => ipcRenderer.invoke('sessions:list'),
 });

@@ -1239,6 +1239,17 @@
     while (storeStatusEl.children.length > 6) storeStatusEl.removeChild(storeStatusEl.firstChild);
   }
 
+  // 全局页面内 toast（右下角）：✔ 前缀 + 2.6 秒自动消失
+  var toastEl = null;
+  function showAppToast(text) {
+    ensureRoot();
+    if (!toastEl) toastEl = $('div', 'dsh-toast', root);
+    toastEl.textContent = '\u2714 ' + text;
+    toastEl.classList.add('show');
+    if (toastEl._t) clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function () { toastEl.classList.remove('show'); }, 2600);
+  }
+
   // ---------------- 插件详情（二次展开）----------------
   function ensureDetail() {
     if (detailEl) return;
@@ -2276,6 +2287,10 @@
           }).catch(function () { /* ignore */ });
         }, 160);
       });
+    }
+    // 页面内提示（「已更换成功 ✔」等）：右下角 toast，自动消失，不打扰
+    if (desktop.onAppToast) {
+      desktop.onAppToast(function (t) { showAppToast(t); });
     }
     // 停靠面板已改为侧挂独立窗口：开合/标签由主进程直接管理，页内不再监听
     if (desktop.onDockOpened) {

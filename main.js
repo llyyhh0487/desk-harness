@@ -268,6 +268,17 @@ function findServerBin() {
   if (cfg.serverBin && fs.existsSync(cfg.serverBin)) return cfg.serverBin;
   // 2) 应用自管工作区（安装版默认）：<安装目录>\deepseekharness-desktop\workspace
   if (fs.existsSync(dshBinIn(workspaceDir()))) return dshBinIn(workspaceDir());
+  // 2.5) 用户已全局安装 deepseekharness（npm i -g）：npm root -g 定位全局包
+  try {
+    const r = spawnSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm root -g'], {
+      encoding: 'utf8', windowsHide: true, timeout: 8000,
+    });
+    const globalRoot = String(r.stdout || '').trim().split(/\r?\n/)[0];
+    if (globalRoot) {
+      const g = path.join(globalRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js');
+      if (fs.existsSync(g)) return g;
+    }
+  } catch { /* ignore */ }
   // 3) 自动探测：exe 所在目录 / 启动目录向上回溯（打包版放在仓库任意子目录也能找到仓库），
   //    再查开发模式目录 / 便携目录
   const rel = path.join('node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js');
@@ -972,7 +983,7 @@ async function chooseBg() {
     saveConfig();
     loadBg();
     pushFx();
-    desktopNotify('DESK HARNESS', '背景图已更换成功 ✔（如需恢复默认，可在控制面板或菜单操作）');
+    sendAppToast('背景图已更换成功（恢复默认可在控制面板/菜单操作）');
   } catch (e) {
     dialog.showErrorBox('更换背景图失败', e.message);
   }
@@ -986,7 +997,7 @@ async function clearBg() {
   saveConfig();
   loadBg();
   pushFx();
-  desktopNotify('DESK HARNESS', '已恢复默认背景 ✔');
+  sendAppToast('已恢复默认背景');
 }
 
 function setBgOpacity(v) {
@@ -1012,7 +1023,7 @@ async function chooseSplashBg() {
     fs.copyFileSync(src, dst);
     cfg.splashBgFile = dst;
     saveConfig();
-    desktopNotify('DESK HARNESS', '启动页背景已更换成功 ✔');
+    sendAppToast('启动页背景已更换成功');
   } catch (e) {
     dialog.showErrorBox('设置启动页背景失败', e.message);
   }
@@ -1021,14 +1032,14 @@ async function chooseSplashBg() {
 function clearSplashBg() {
   cfg.splashBgFile = null;
   saveConfig();
-  desktopNotify('DESK HARNESS', '已恢复默认启动页背景 ✔');
+  sendAppToast('已恢复默认启动页背景');
 }
 
 function setSplashMessage(msg) {
   cfg.splashMessage = String(msg || '').slice(0, 200);
   saveConfig();
   pushFx();
-  desktopNotify('DESK HARNESS', '启动页欢迎语已更新 ✔');
+  sendAppToast('启动页欢迎语已更新');
 }
 
 // ---------------------------------------------------------------------------
@@ -1074,7 +1085,7 @@ async function chooseAppIcon() {
     pushFx();
     applyAppIcons();
     refreshTaskbarIcon();
-    desktopNotify('DESK HARNESS', '图标已更换成功 ✔（界面 + exe 一体）');
+    sendAppToast('图标已更换成功（界面 + exe 一体）');
     dialog.showMessageBox(mainWin, {
       type: 'info',
       title: '图标已更新',
@@ -1106,7 +1117,7 @@ async function resetAppIcon() {
   pushFx();
   applyAppIcons();
   refreshTaskbarIcon();
-  desktopNotify('DESK HARNESS', '已恢复默认图标 ✔');
+  sendAppToast('已恢复默认图标');
   log('app icon reset to default');
 }
 
@@ -3572,6 +3583,14 @@ let sessionRunningState = new Map();
 function desktopNotify(title, body) {
   try {
     new Notification({ title, body, icon: logoPath }).show();
+  } catch { /* ignore */ }
+}
+
+// 桌面端页面内提示（右下角 toast，带 ✓）：用于「已更换成功」等即时反馈，
+// 不打扰的系统通知，直接显示在应用界面上
+function sendAppToast(text) {
+  try {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('app:toast', String(text || ''));
   } catch { /* ignore */ }
 }
 

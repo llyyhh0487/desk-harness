@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    DeepSeek Harness 桌面版 · fx 样式层（注入，不修改网页版 UI）
    ============================================================ */
 
@@ -1304,3 +1304,16 @@ body.dsh-fx-light .dsh-dt-readme-body .dsh-md-code { background: rgba(47, 95, 20
   border-left: 2px solid rgba(77, 107, 254, 0.4); padding-left: 9px;
 }
 body.dsh-fx-light .dsh-dt-trans { color: #4a5a85; }
+
+/* ---------- 全局页面内 toast（右下角「✔ 已更换成功」） ---------- */
+.dsh-toast {
+  position: fixed; right: 22px; bottom: 26px; z-index: 2147483000;
+  max-width: 420px; padding: 11px 18px; border-radius: 12px;
+  background: rgba(10, 16, 32, 0.92); color: #e6eefc;
+  border: 1px solid rgba(64, 224, 160, 0.55);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(64, 224, 160, 0.25);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
+  opacity: 0; transform: translateY(12px); pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.dsh-toast.show { opacity: 1; transform: translateY(0); }
