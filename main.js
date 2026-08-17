@@ -545,9 +545,10 @@ async function detectEnv() {
     } catch (e) { /* ignore */ }
   }
   r.npx = { ok: !!nxv, version: nxv === 'installed' ? '' : nxv };
-  // 依赖：自管工作区 / 既有仓库布局（便携/开发模式 / 本机已装 DSH）
+  // 依赖：自管工作区 / 全局 npm / 既有仓库布局 / PATH 里的 dsh 命令（本机已装 DSH）
   const bin = findServerBin();
-  r.deps = { ok: !!bin, path: bin || '' };
+  const dshInPath = !bin && detectDshInPath();
+  r.deps = { ok: !!bin || dshInPath, path: bin || (dshInPath ? 'PATH: dsh' : '') };
   // 判定口径：本机已有 deepseekharness（dsh 后端）即视为环境就绪，无需部署。
   // Node/pnpm/npx 仅用于首次部署安装依赖；日常运行与插件安装均由 dsh 内置运行时完成。
   r.allOk = r.deps.ok;
@@ -895,6 +896,38 @@ function openSetupWindow(env) {
 ipcMain.on('setup:start', (e) => { if (isLocalFileSender(e) && setupWin && !setupBusy) deployEnv(); });
 ipcMain.on('setup:quit', (e) => { if (isLocalFileSender(e) && setupWin && !setupWin.isDestroyed()) setupWin.close(); });
 ipcMain.on('setup:open-log', (e) => { if (isLocalFileSender(e)) shell.openPath(setupLogPath()); });
+// 手动指定已有 DeepSeek Harness：用户本机已装但自动检测不到时，选目录直达
+ipcMain.on('setup:pick-dsh', async (e) => {
+  if (!isLocalFileSender(e) || !setupWin || setupBusy) return;
+  const r = await dialog.showOpenDialog(setupWin, {
+    title: '选择已有的 DeepSeek Harness 目录（仓库根目录或安装根目录）',
+    properties: ['openDirectory'],
+  });
+  if (r.canceled || !r.filePaths.length) return;
+  const dir = r.filePaths[0];
+  const candidates = [
+    path.join(dir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+    path.join(dir, 'workspace', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+    path.join(dir, 'deepseekharness-desktop', 'workspace', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+  ];
+  const bin = candidates.find((p) => fs.existsSync(p));
+  if (!bin) {
+    dialog.showMessageBox(setupWin, {
+      type: 'warning', title: '未找到后端',
+      message: '所选目录下未找到 node_modules\\@deepseek-ai\\dsh\\lib\\bin.js',
+      detail: '请选择 deepseekharness 仓库根目录（含 node_modules 的那一层）或桌面版安装根目录。',
+      buttons: ['重新选择'],
+    });
+    return;
+  }
+  cfg.serverBin = bin;
+  saveConfig();
+  setupSuccess = true;
+  setupBusy = false;
+  launchLog('setup: user picked existing dsh -> ' + bin);
+  sendSetup({ phase: 'done', ok: true, line: '\u5DF2\u4F7F\u7528\u4F60\u6307\u5B9A\u7684 DeepSeek Harness\uFF1A' + bin + '\uFF0C\u6B63\u5728\u8FDB\u5165\u2026' });
+  setTimeout(() => { if (setupWin && !setupWin.isDestroyed()) setupWin.close(); }, 800);
+});
 
 // ---------------------------------------------------------------------------
 // fx 配置 / 注入
@@ -3093,8 +3126,8 @@ async function bootstrap() {
 
   // 首次运行 OR 配置声称已部署但实际找不到 dsh 后端（部署目录被删/移动/残留配置）：
   // 校验部署标志真实性，失效则重置并重新走环境检测/一键部署，而不是直接报「未找到后端」
-  const depsMissing = !findServerBin();
-  launchLog('deployed=' + !!cfg.deployed + ' depsMissing=' + depsMissing + (depsMissing ? '' : (' bin=' + findServerBin())));
+  const depsMissing = !findServerBin() && !detectDshInPath();
+  launchLog('deployed=' + !!cfg.deployed + ' depsMissing=' + depsMissing + (depsMissing ? '' : (' bin=' + (findServerBin() || 'PATH:dsh'))));
   if (!cfg.deployed || depsMissing) {
     if (cfg.deployed && depsMissing) {
       log('deployed 标志失效（dsh 后端缺失）——重置并重新部署');
@@ -3326,10 +3359,25 @@ function sweepOrphanPlugins() {
 // PATH 前置：workspace\node_modules\.bin + 部署 env 目录（pnpm 转发外壳）+ 系统 PATH
 // 降级链：npx --yes → 裸 dsh → 绝对路径（8.3 短路径）
 // 插件安装/卸载后的「重启服务并重启桌面端」走同一引擎（startServiceFlow，全程无 PowerShell）
+// 探测 PATH 里是否存在 dsh 命令（用户自装 deepseekharness 且加入 PATH 的情况）
+function detectDshInPath() {
+  try {
+    const r = spawnSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'where dsh'], {
+      encoding: 'utf8', windowsHide: true, env: process.env, timeout: 5000,
+    });
+    return r.status === 0 && !!String(r.stdout || '').trim();
+  } catch { return false; }
+}
+
 function serviceKinds() {
-  // 安装版：npx → 裸 dsh → 绝对路径，逐级与手动拉起对齐（路径含空格稳）；
-  // 开发模式：绝对路径优先（本机 npx shim 可能破损）
-  return app.isPackaged ? ['npx', 'dsh', 'abs'] : ['abs', 'npx', 'dsh'];
+  const bin = findServerBin();
+  if (bin) {
+    // 有明确的 dsh 后端路径：安装版 npx 优先，开发模式绝对路径优先
+    return app.isPackaged ? ['npx', 'dsh', 'abs'] : ['abs', 'npx', 'dsh'];
+  }
+  // 没有 bin 路径但 PATH 里有 dsh 命令（用户自装环境）：直接用 dsh 命令拉起
+  if (detectDshInPath()) return ['dsh', 'npx'];
+  return [];
 }
 function shortPath(p) {
   // 8.3 短路径（无空格）：cmd 引号层最稳。卷禁用短名时原样返回
@@ -3344,17 +3392,19 @@ function shortPath(p) {
   return p;
 }
 function launchServiceInner(kind, port) {
-  const bin = findServerBin();
-  if (!bin) return null;
-  const cwd = (cfg.serverCwd && fs.existsSync(cfg.serverCwd)) ? cfg.serverCwd : (findRepoRoot() || workspaceDir() || userDataDir);
+  // cwd 必须真实存在（PATH 里有 dsh 但无本地 bin 时，workspace 可能不存在 → 退回 userData）
+  let cwd = (cfg.serverCwd && fs.existsSync(cfg.serverCwd)) ? cfg.serverCwd : (findRepoRoot() || workspaceDir() || userDataDir);
+  if (!fs.existsSync(cwd)) cwd = userDataDir;
   const q = (s) => '"' + String(s).replace(/"/g, '""') + '"';
   if (kind === 'abs') {
     // 兜底：内置 Node（绝对路径，短路径化）优先，否则系统 PATH 上的 node
+    const bin = findServerBin();
+    if (!bin) return null;
     const nodeExe = fs.existsSync(envNodeExe()) ? shortPath(envNodeExe()) : 'node';
     return { inner: '"' + q(nodeExe) + ' ' + q(shortPath(bin)) + ` web --host 127.0.0.1 --port ${port}` + '"', cwd };
   }
   if (kind === 'dsh') {
-    // 裸 dsh：serviceEnv() 已把 workspace/node_modules/.bin 前置 —— 与在 workspace 里输入 dsh web 一致
+    // 裸 dsh：PATH/workspace\.bin 前置解析 —— 与在终端里输入 dsh web 一致
     return { inner: 'dsh web --host 127.0.0.1 --port ' + port, cwd };
   }
   // 主路径：与验证过的启动脚本完全一致 —— `npx --yes dsh web`（--yes 防 npx 在隐藏窗口里

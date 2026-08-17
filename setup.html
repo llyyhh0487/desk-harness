@@ -106,6 +106,7 @@
 
     <div class="btns">
       <button id="btn-quit">退出</button>
+      <button id="btn-pick">手动指定已有的 DeepSeek Harness…</button>
       <button id="btn-log" style="display:none">打开日志</button>
       <button class="primary" id="btn-go">同意并一键安装配置</button>
     </div>
@@ -182,6 +183,13 @@
     if (window.desktop && window.desktop.setupStart) window.desktop.setupStart();
     else { logLine('\u65E0\u6CD5\u4E0E\u4E3B\u8FDB\u7A0B\u901A\u4FE1\uFF0C\u8BF7\u91CD\u65B0\u542F\u52A8\u3002'); }
   });
+  var btnPick = document.getElementById('btn-pick');
+  if (btnPick) {
+    btnPick.addEventListener('click', function () {
+      if (busy) return;
+      if (window.desktop && window.desktop.setupPickDsh) window.desktop.setupPickDsh();
+    });
+  }
   btnQuit.addEventListener('click', function () {
     if (window.desktop && window.desktop.setupQuit) window.desktop.setupQuit();
   });

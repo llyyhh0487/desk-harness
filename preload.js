@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('desktop', {
   setupStart: () => ipcRenderer.send('setup:start'),
   setupQuit: () => ipcRenderer.send('setup:quit'),
   setupOpenLog: () => ipcRenderer.send('setup:open-log'),
+  setupPickDsh: () => ipcRenderer.send('setup:pick-dsh'),
   onSetupState: (cb) => ipcRenderer.on('setup:state', (_e, s) => cb(s)),
   // 外链 / 关闭选择
   openExternal: (url) => ipcRenderer.send('win:open-external', url),
