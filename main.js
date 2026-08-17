@@ -3180,18 +3180,47 @@ async function bootstrap() {
   launchLog('portPid=' + (portPid || 0) + ' alreadyUp=' + alreadyUp);
 
   if (!alreadyUp) {
-    const bin = findServerBin();
+    let bin = findServerBin();
     if (!bin) {
-      launchLog('FINAL: bin not found, aborting');
+      // 自动检测全落空：弹窗提供「手动指定目录…」——用户本机已有 deepseekharness
+      // 但装在自动检测覆盖不到的位置（如其他盘/自定义目录），选一下目录即可直达
+      launchLog('FINAL: bin not found, asking user to pick manually');
       setStatus('fatal', '');
-      dialog.showMessageBoxSync(mainWin, {
-        type: 'error', title: '未找到 DeepSeek Harness',
-        message: '未找到 DeepSeek Harness 后端程序（node_modules\\@deepseek-ai\\dsh\\lib\\bin.js）。',
-        detail: '请把 DESK HARNESS.exe 放在 DeepSeek Harness 工作区（含 node_modules 的目录）中再运行。',
-        buttons: ['退出'],
-      });
-      app.quit();
-      return;
+      while (!bin) {
+        const r = dialog.showMessageBoxSync(mainWin, {
+          type: 'error', title: '未找到 DeepSeek Harness',
+          message: '未找到 DeepSeek Harness 后端程序（node_modules\\@deepseek-ai\\dsh\\lib\\bin.js）。',
+          detail: '如果这台电脑已经装有 deepseekharness（含 node_modules 的目录，例如 D:\\deepseekharness），请点「手动指定目录…」选择它；\n没有安装则点「退出」后重新打开桌面版，按提示一键部署。',
+          buttons: ['手动指定目录…', '退出'],
+          defaultId: 0, cancelId: 1,
+        });
+        if (r !== 0) { app.quit(); return; }
+        const pick = await dialog.showOpenDialog(mainWin, {
+          title: '选择已有的 DeepSeek Harness 目录（仓库根目录或安装根目录）',
+          properties: ['openDirectory'],
+        });
+        if (pick.canceled || !pick.filePaths.length) continue;
+        const dir = pick.filePaths[0];
+        const candidates = [
+          path.join(dir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+          path.join(dir, 'workspace', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+          path.join(dir, 'deepseekharness-desktop', 'workspace', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+        ];
+        bin = candidates.find((p) => fs.existsSync(p)) || null;
+        if (bin) {
+          cfg.serverBin = bin;
+          saveConfig();
+          launchLog('user picked existing dsh: ' + bin);
+          sendAppToast('已使用你指定的 DeepSeek Harness');
+        } else {
+          dialog.showMessageBoxSync(mainWin, {
+            type: 'warning', title: '未找到后端',
+            message: '所选目录下未找到 node_modules\\@deepseek-ai\\dsh\\lib\\bin.js',
+            detail: '请选择 deepseekharness 仓库根目录（含 node_modules 的那一层）或桌面版安装根目录。',
+            buttons: ['重新选择'],
+          });
+        }
+      }
     }
     // 拉起服务并校验健康：统一引擎（npx --yes → 裸 dsh → 绝对路径，
     // 全程无 PowerShell；进程秒退立即切换下一级）
