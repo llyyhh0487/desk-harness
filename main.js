@@ -111,6 +111,7 @@ let cfg = {
   envNodePath: null,        // 内置 Node.js 路径（deployBase/env/node/node.exe，缺失时用系统 PATH）
   deployDir: null,          // 旧版自定义部署目录（启动时一次性迁移到安装目录；新版本不再提供自选）
   exeIconFile: null,        // 自定义 exe/任务栏图标（userData/exe-icon.ico，运行时即时生效）
+  exeIconSig: null,         // 上次运行时的 exe 图标签名（升级后自动刷新任务栏图标缓存）
   fx: {
     effects: true,          // 极光视觉层 + 滚动条
     titlebar: true,         // 自绘标题栏
@@ -971,6 +972,7 @@ async function chooseBg() {
     saveConfig();
     loadBg();
     pushFx();
+    desktopNotify('DESK HARNESS', '背景图已更换成功 ✔（如需恢复默认，可在控制面板或菜单操作）');
   } catch (e) {
     dialog.showErrorBox('更换背景图失败', e.message);
   }
@@ -984,6 +986,7 @@ async function clearBg() {
   saveConfig();
   loadBg();
   pushFx();
+  desktopNotify('DESK HARNESS', '已恢复默认背景 ✔');
 }
 
 function setBgOpacity(v) {
@@ -1009,6 +1012,7 @@ async function chooseSplashBg() {
     fs.copyFileSync(src, dst);
     cfg.splashBgFile = dst;
     saveConfig();
+    desktopNotify('DESK HARNESS', '启动页背景已更换成功 ✔');
   } catch (e) {
     dialog.showErrorBox('设置启动页背景失败', e.message);
   }
@@ -1017,12 +1021,14 @@ async function chooseSplashBg() {
 function clearSplashBg() {
   cfg.splashBgFile = null;
   saveConfig();
+  desktopNotify('DESK HARNESS', '已恢复默认启动页背景 ✔');
 }
 
 function setSplashMessage(msg) {
   cfg.splashMessage = String(msg || '').slice(0, 200);
   saveConfig();
   pushFx();
+  desktopNotify('DESK HARNESS', '启动页欢迎语已更新 ✔');
 }
 
 // ---------------------------------------------------------------------------
@@ -1068,6 +1074,7 @@ async function chooseAppIcon() {
     pushFx();
     applyAppIcons();
     refreshTaskbarIcon();
+    desktopNotify('DESK HARNESS', '图标已更换成功 ✔（界面 + exe 一体）');
     dialog.showMessageBox(mainWin, {
       type: 'info',
       title: '图标已更新',
@@ -1099,6 +1106,7 @@ async function resetAppIcon() {
   pushFx();
   applyAppIcons();
   refreshTaskbarIcon();
+  desktopNotify('DESK HARNESS', '已恢复默认图标 ✔');
   log('app icon reset to default');
 }
 
@@ -4258,6 +4266,17 @@ if (!gotLock) {
     createTray();
     buildMenu();
     applyAppIcons();
+    // 升级/改名后自动刷新一次任务栏图标缓存（解决任务栏显示空白/旧图标）
+    try {
+      const st = fs.statSync(process.execPath);
+      const sig = String(st.size) + ':' + Math.round(st.mtimeMs);
+      if (cfg.exeIconSig !== sig) {
+        cfg.exeIconSig = sig;
+        saveConfig();
+        refreshTaskbarIcon();
+        log('taskbar icon cache refresh on upgrade');
+      }
+    } catch { /* ignore */ }
     if (cfg.pinTop && mainWin) { try { mainWin.setAlwaysOnTop(true); } catch { /* ignore */ } }
     // 背景图测试钩子（等价于菜单操作路径）
     if (bgSetTarget) {
