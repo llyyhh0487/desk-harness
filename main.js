@@ -3088,13 +3088,19 @@ async function uninstallPluginCore(names) {
   try {
     const pkgPath = path.join(profileDir(), 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    const matchName = (key) => names.some((n) => {
+    // 匹配依赖 KEY（包名）或依赖 VALUE（spec，如 github:owner/repo）：
+    // 手动安装输入 GitHub 仓库名时，依赖 KEY 是包名（如 @dsh-external/dsh-file-attachments），
+    // 但 UI 传的是仓库名（xzyonline/dsh-chat-files）——必须两边都匹配才能卸掉
+    const matchName = (key, spec) => names.some((n) => {
       const base = n.split('/')[1] || n;
-      return key === n || key === base || String(key).endsWith('/' + base);
+      const s = String(spec || '');
+      return key === n || key === base || String(key).endsWith('/' + base)
+        || s === 'github:' + n || s === 'git+https://github.com/' + n + '.git'
+        || s.includes('/' + n) || s.endsWith('/' + base);
     });
     // 1) pnpm remove（经 dsh plugin 转发，同步清理依赖与 node_modules）；
     //    失败则整体放弃（不清理 bundles），保证失败时状态一致、可重试
-    const targets = Object.keys(pkg.dependencies || {}).filter(matchName);
+    const targets = Object.keys(pkg.dependencies || {}).filter((k) => matchName(k, pkg.dependencies[k]));
     try { fs.appendFileSync(logFile, `\n[desktop] uninstall ${names.join(', ')} -> pnpm remove ${targets.join(' ')}\n`); } catch { /* ignore */ }
     log('plugin uninstall:', names.join(', '), 'targets:', targets.join(' ') || '(none)');
     if (targets.length) {
@@ -3111,7 +3117,8 @@ async function uninstallPluginCore(names) {
     if (pkg2.dsh && pkg2.dsh.profile) pkg2.dsh.profile.bundles = keepBundles;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg2, null, 2));
     // 3) 直接删除残留包目录（防止 pnpm 未清干净的孤儿被加载器自动包含）
-    names.forEach((n) => {
+    //    优先按解析出的真实包名（targets）清理，覆盖「仓库名 ≠ 包名」的场景
+    (targets.length ? targets : names).forEach((n) => {
       const base = n.split('/')[1] || n;
       for (const d of [base, n]) {
         try { fs.rmSync(path.join(profileDir(), 'node_modules', d), { recursive: true, force: true }); } catch { /* ignore */ }
