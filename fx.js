@@ -578,7 +578,7 @@
     // 手动安装：索引未收录的低星插件可直接输入 owner/repo 安装（如 xzyonline/dsh-chat-files）
     var manualRow = $('div', 'dsh-store-manual', storeEl);
     var manualInput = $('input', 'dsh-store-manual-input', manualRow);
-    manualInput.placeholder = lang === 'en' ? 'Plugin not listed? Type GitHub repo name (e.g. xzyonline/dsh-chat-files)' : '\u627E\u4E0D\u5230\u63D2\u4EF6\uFF1F\u8F93\u5165 GitHub \u4ED3\u5E93\u540D\u5B89\u88C5\uFF08\u5982 xzyonline/dsh-chat-files\uFF09';
+    manualInput.placeholder = lang === 'en' ? 'Plugin not listed? Type owner/repo, npm pkg name, or GitHub URL, press Enter' : '\u627E\u4E0D\u5230\u63D2\u4EF6\uFF1F\u8F93\u5165 GitHub \u4ED3\u5E93\u540D\uFF08owner/repo\uFF09\u3001npm \u5305\u540D\u6216 GitHub \u94FE\u63A5\uFF0C\u56DE\u8F66\u5B89\u88C5';
     manualInput.setAttribute('spellcheck', 'false');
     manualInput.setAttribute('autocomplete', 'off');
     var manualBtn = $('button', 'dsh-store-manual-btn', manualRow);

@@ -540,16 +540,17 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   align-items: center;
 }
 .dsh-store-manual-input {
-  flex: 1; background: rgba(12,16,30,0.55); color: #c9d6ff;
-  border: 1px solid rgba(120,140,200,0.18); border-radius: 8px;
-  padding: 6px 10px; font-size: 12px; outline: none; font-family: inherit;
+  flex: 1; background: rgba(18,25,45,0.75); color: #eef3ff;
+  border: 1px solid rgba(120,140,200,0.22); border-radius: 8px;
+  padding: 7px 12px; font-size: 12.5px; outline: none; font-family: inherit;
 }
-.dsh-store-manual-input:focus { border-color: var(--dsh-tb-accent2); }
+.dsh-store-manual-input::placeholder { color: rgba(170,185,220,0.65); font-size: 12px; }
+.dsh-store-manual-input:focus { border-color: var(--dsh-tb-accent2); background: rgba(18,25,45,0.88); }
 .dsh-store-manual-btn {
-  flex: none; font-size: 12px; padding: 6px 16px; border-radius: 8px; cursor: pointer;
-  border: 1px solid rgba(77,107,254,0.5); background: rgba(77,107,254,0.18); color: #b8c8ff;
+  flex: none; font-size: 12.5px; padding: 7px 18px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(77,107,254,0.55); background: rgba(77,107,254,0.22); color: #dde6ff; font-weight: 600;
 }
-.dsh-store-manual-btn:hover { background: rgba(77,107,254,0.32); }
+.dsh-store-manual-btn:hover { background: rgba(77,107,254,0.38); }
 .dsh-store-foot {
   display: flex; gap: 8px; padding: 10px 14px;
   border-top: 1px solid rgba(120, 140, 200, 0.15);

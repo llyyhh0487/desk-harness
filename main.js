@@ -4268,6 +4268,18 @@ function createWindow() {
     const u = String(url || '');
     if (/^https?:\/\//i.test(u)) shell.openExternal(u);
   });
+  // 商店：设置 GitHub Token（提升索引量，用户可选）
+  ipcMain.on('store:setup-token', (e) => {
+    if (!isTrustedSender(e)) return;
+    shell.openExternal('https://github.com/settings/tokens/new?scopes=public_repo&description=DESK+HARNESS+plugin+store');
+    shell.openPath(configPath);
+    dialog.showMessageBox(mainWin, {
+      type: 'info', title: '设置 GitHub Token（可选）',
+      message: '已打开 GitHub Token 生成页面和配置文件。',
+      detail: '操作步骤：\n1. 在 GitHub 页面：描述已有，勾选 public_repo，点击 Generate token，复制 Token\n2. 在配置文件中：找到 "ghToken": null，把 null 替换成你的 Token（带引号）\n3. 保存文件，重启桌面端\n\n设置后商店索引量提升 3 倍（从约 1160 个插件到 3000+ 个）。',
+      buttons: ['知道了'],
+    });
+  });
 
   mainWin.on('closed', () => { mainWin = null; });
 
