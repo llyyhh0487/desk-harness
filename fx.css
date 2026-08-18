@@ -21,10 +21,15 @@ body.dsh-fx-dark {
   --dsh-aurora-blend: screen;
   /* 结构变量（多套 UI 设计差异化） */
   --dsh-radius: 14px;
-  --dsh-radius-sm: 8px;
+  --dsh-radius-sm: 10px;
   --dsh-radius-pill: 999px;
   --dsh-glass: blur(14px) saturate(1.3);
   --dsh-glow: 0 8px 30px rgba(4, 8, 20, 0.45);
+  --dsh-ring: 0 0 0 1px rgba(255,255,255,0.12) inset, 0 0 12px rgba(77,107,254,0.18);
+  --dsh-ring-offset: 0 0 0 3px rgba(77,107,254,0.14);
+  --dsh-text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  --dsh-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --dsh-spring: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   --dsh-tb-shadow: 0 2px 18px rgba(8, 12, 30, 0.16);
   --dsh-spec: inset 0 1px 0 rgba(255, 255, 255, 0.10);
   --dsh-accent-grad: linear-gradient(90deg, var(--dsh-tb-accent1), var(--dsh-tb-accent2));
@@ -51,10 +56,15 @@ body.dsh-fx-light {
   --dsh-aurora-blend: normal;
   /* 结构变量 */
   --dsh-radius: 14px;
-  --dsh-radius-sm: 8px;
+  --dsh-radius-sm: 10px;
   --dsh-radius-pill: 999px;
   --dsh-glass: blur(14px) saturate(1.3);
   --dsh-glow: 0 8px 30px rgba(60, 80, 160, 0.18);
+  --dsh-ring: 0 0 0 1px rgba(0,0,0,0.06) inset, 0 0 10px rgba(77,107,254,0.12);
+  --dsh-ring-offset: 0 0 0 3px rgba(77,107,254,0.10);
+  --dsh-text-shadow: none;
+  --dsh-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --dsh-spring: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   --dsh-tb-shadow: 0 2px 14px rgba(80, 100, 180, 0.10);
   --dsh-spec: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   --dsh-accent-grad: linear-gradient(90deg, var(--dsh-tb-accent1), var(--dsh-tb-accent2));
@@ -453,8 +463,10 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
 .dsh-store-close {
   background: transparent; border: none; color: var(--dsh-card-dim);
   font-size: 15px; cursor: pointer; width: 28px; height: 28px; border-radius: 8px;
+  transition: var(--dsh-transition);
 }
 .dsh-store-close:hover { background: rgba(255, 92, 122, 0.15); color: #ff8fa3; }
+.dsh-store-close:active { transform: scale(0.92); }
 .dsh-store-tools {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
@@ -465,9 +477,13 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   background: var(--dsh-progress-track);
   border: 1px solid var(--dsh-chip-border);
   color: var(--dsh-card-fg);
-  border-radius: 8px; padding: 6px 10px; font-size: 12px; outline: none;
+  border-radius: 10px; padding: 6px 10px; font-size: 12px; outline: none;
+  transition: var(--dsh-transition);
 }
-.dsh-store-search:focus { border-color: var(--dsh-tb-accent2); }
+.dsh-store-search:focus {
+  border-color: var(--dsh-tb-accent2);
+  box-shadow: var(--dsh-ring-offset);
+}
 .dsh-store-sel {
   max-width: 96px; min-width: 0;
   background: var(--dsh-progress-track);
@@ -484,9 +500,11 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   background: rgba(77, 107, 254, 0.10);
   border: 1px dashed var(--dsh-chip-border);
   color: var(--dsh-tb-accent1);
-  border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer;
+  border-radius: 10px; padding: 8px 10px; font-size: 12px; cursor: pointer;
+  transition: var(--dsh-transition);
 }
-.dsh-store-loadmore:hover { background: rgba(77, 107, 254, 0.18); border-style: solid; }
+.dsh-store-loadmore:hover { background: rgba(77, 107, 254, 0.2); border-style: solid; border-color: var(--dsh-tb-accent1); }
+.dsh-store-loadmore:active { transform: scale(0.98); }
 .dsh-store-selectall {
   font-size: 11.5px; color: var(--dsh-card-dim);
   display: flex; gap: 4px; align-items: center;
@@ -496,10 +514,16 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
 .dsh-plug {
   border: 1px solid rgba(120, 140, 200, 0.2); border-radius: var(--dsh-radius-sm);
   padding: 10px 12px; margin-bottom: 10px;
-  background: var(--dsh-chip-bg);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  background: color-mix(in srgb, var(--dsh-card-bg) 80%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: var(--dsh-transition);
 }
-.dsh-plug:hover { border-color: var(--dsh-chip-border); box-shadow: var(--dsh-glow); transform: translateY(-1px); }
+.dsh-plug:hover {
+  border-color: var(--dsh-chip-border);
+  box-shadow: var(--dsh-glow), var(--dsh-ring);
+  transform: translateY(-1px);
+}
+.dsh-plug:active { transform: scale(0.99); }
 .dsh-plug-top { display: flex; align-items: center; gap: 8px; }
 .dsh-plug-name {
   font-size: 12.5px; font-weight: 600; color: var(--dsh-card-fg);
@@ -512,20 +536,27 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
 }
 .dsh-plug-bot { display: flex; align-items: center; gap: 8px; }
 .dsh-badge {
-  font-size: 10px; color: #34d399;
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  border-radius: 5px; padding: 1px 6px;
+  font-size: 10px; padding: 2px 8px; border-radius: 6px;
+  background: rgba(52, 211, 153, 0.10); color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  transition: var(--dsh-transition);
+}
+.dsh-badge.upd {
+  background: rgba(245, 158, 11, 0.12); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);
 }
 .dsh-install {
   margin-left: auto;
   background: var(--dsh-accent-grad);
   border: none; color: #fff;
   font-size: 11.5px; font-weight: 600;
-  border-radius: var(--dsh-radius-sm); padding: 4px 14px; cursor: pointer;
+  border-radius: var(--dsh-radius-sm); padding: 5px 14px; cursor: pointer;
+  transition: var(--dsh-transition), filter var(--dsh-transition);
+  box-shadow: 0 2px 8px rgba(77,107,254,0.25);
 }
-.dsh-install:hover { filter: brightness(1.15); }
-.dsh-install:disabled { opacity: 0.5; cursor: default; }
+.dsh-install:hover { filter: brightness(1.15); box-shadow: 0 4px 14px rgba(77,107,254,0.4); transform: translateY(-0.5px); }
+.dsh-install:active { transform: scale(0.97); }
+.dsh-install:disabled { opacity: 0.45; cursor: default; transform: none; filter: none; box-shadow: none; }
 .dsh-install.dsh-cancel {
   background: linear-gradient(90deg, #ef4444, #f97316);
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
@@ -540,33 +571,39 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   align-items: center;
 }
 .dsh-store-manual-input {
-  flex: 1; background: rgba(18,25,45,0.75); color: #eef3ff;
-  border: 1px solid rgba(120,140,200,0.22); border-radius: 8px;
+  flex: 1; background: color-mix(in srgb, var(--dsh-card-bg) 75%, transparent);
+  color: #eef3ff; border: 1px solid rgba(120,140,200,0.22); border-radius: 10px;
   padding: 7px 12px; font-size: 12.5px; outline: none; font-family: inherit;
+  transition: var(--dsh-transition);
 }
 .dsh-store-manual-input::placeholder { color: rgba(170,185,220,0.65); font-size: 12px; }
-.dsh-store-manual-input:focus { border-color: var(--dsh-tb-accent2); background: rgba(18,25,45,0.88); }
-.dsh-store-manual-btn {
-  flex: none; font-size: 12.5px; padding: 7px 18px; border-radius: 8px; cursor: pointer;
-  border: 1px solid rgba(77,107,254,0.55); background: rgba(77,107,254,0.22); color: #dde6ff; font-weight: 600;
+.dsh-store-manual-input:focus {
+  border-color: var(--dsh-tb-accent2);
+  box-shadow: var(--dsh-ring-offset);
+  background: color-mix(in srgb, var(--dsh-card-bg) 88%, transparent);
 }
-.dsh-store-manual-btn:hover { background: rgba(77,107,254,0.38); }
+.dsh-store-manual-btn {
+  flex: none; font-size: 12.5px; padding: 7px 18px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(77,107,254,0.55); background: rgba(77,107,254,0.22); color: #dde6ff; font-weight: 600;
+  transition: var(--dsh-transition);
+}
+.dsh-store-manual-btn:hover { background: rgba(77,107,254,0.38); box-shadow: var(--dsh-ring); }
+.dsh-store-manual-btn:active { transform: scale(0.96); }
 .dsh-store-foot {
   display: flex; gap: 8px; padding: 10px 14px;
   border-top: 1px solid rgba(120, 140, 200, 0.15);
 }
-.dsh-store-more, .dsh-store-batch {
-  flex: 1;
-  background: rgba(77, 107, 254, 0.12);
-  border: 1px solid var(--dsh-chip-border);
-  color: var(--dsh-card-fg);
-  border-radius: 8px; padding: 7px 0; font-size: 12px; cursor: pointer;
-}
 .dsh-store-batch {
+  flex: 1;
   background: var(--dsh-accent-grad);
   color: #fff; font-weight: 600; border: none;
+  border-radius: 10px; padding: 7px 0; font-size: 12px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(77,107,254,0.25);
+  transition: var(--dsh-transition);
 }
-.dsh-store-more:disabled { opacity: 0.4; cursor: default; }
+.dsh-store-batch:hover { filter: brightness(1.15); box-shadow: 0 4px 14px rgba(77,107,254,0.4); transform: translateY(-0.5px); }
+.dsh-store-batch:active { transform: scale(0.97); }
+.dsh-store-more:disabled { opacity: 0.4; cursor: default; transform: none; }
 .dsh-store-status { max-height: 120px; overflow-y: auto; padding: 0 14px 10px; font-size: 11px; }
 .dsh-st-line.delta { color: #16a34a; font-weight: 600; }
 .dsh-st-line { padding: 3px 0; color: var(--dsh-card-dim); word-break: break-all; }
@@ -884,13 +921,39 @@ body.dsh-theme-midnight {
   transition: background 0.12s ease, padding-left 0.15s ease;
 }
 .dsh-cp-row:hover { background: linear-gradient(90deg, rgba(77, 107, 254, 0.1), rgba(77, 107, 254, 0.03)); padding-left: 15px; }
-.dsh-cp-check, .dsh-cp-radio {
-  accent-color: var(--dsh-tb-accent1);
-  width: 15px; height: 15px; cursor: pointer; flex: 0 0 auto;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+/* 拨动开关（checkbox → iOS 风格 toggle） */
+.dsh-cp-check {
+  appearance: none; -webkit-appearance: none;
+  width: 36px; height: 20px; border-radius: 10px; flex: 0 0 auto;
+  background: rgba(120, 140, 200, 0.22);
+  border: none; cursor: pointer; position: relative;
+  transition: var(--dsh-transition);
 }
-.dsh-cp-check:hover, .dsh-cp-radio:hover { transform: scale(1.15); }
-.dsh-cp-check:checked, .dsh-cp-radio:checked { filter: drop-shadow(0 0 5px var(--dsh-tb-accent1)); }
+.dsh-cp-check::before {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition: var(--dsh-spring);
+}
+.dsh-cp-check:checked { background: var(--dsh-tb-accent1); box-shadow: 0 0 10px rgba(77,107,254,0.4); }
+.dsh-cp-check:checked::before { left: 18px; }
+.dsh-cp-check:hover { transform: scale(1.05); }
+.dsh-cp-check:active::before { transform: scale(0.9); }
+/* 单选框保持圆形点 */
+.dsh-cp-radio {
+  appearance: none; -webkit-appearance: none;
+  width: 15px; height: 15px; border-radius: 50%; flex: 0 0 auto;
+  border: 2px solid rgba(120, 140, 200, 0.45); cursor: pointer; position: relative;
+  transition: var(--dsh-transition);
+}
+.dsh-cp-radio::before {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 7px; height: 7px; border-radius: 50%; background: transparent;
+  transition: var(--dsh-spring);
+}
+.dsh-cp-radio:checked { border-color: var(--dsh-tb-accent1); }
+.dsh-cp-radio:checked::before { background: var(--dsh-tb-accent1); box-shadow: 0 0 6px var(--dsh-tb-accent1); }
+.dsh-cp-radio:hover { transform: scale(1.15); }
 .dsh-cp-label { font-size: 12.5px; color: var(--dsh-card-fg); flex: 1; min-width: 0; line-height: 1.45; }
 .dsh-cp-hint { font-size: 10.5px; color: var(--dsh-card-dim); white-space: nowrap; }
 /* 启动界面·欢迎语输入行 */
@@ -1008,7 +1071,76 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 .dsh-store-fab span { vertical-align: middle; }
 .dsh-store-fab:hover { opacity: 1; transform: scale(1.05); }
 
-/* ---------- 浮动终端入口（dsh-plugin 左侧） ---------- */
+/* ---------- 滚动条美化 ---------- */
+.dsh-store-list::-webkit-scrollbar,
+.dsh-cpanel-body::-webkit-scrollbar,
+.dsh-store-tags::-webkit-scrollbar,
+.dsh-store-status::-webkit-scrollbar {
+  width: 4px;
+}
+.dsh-store-list::-webkit-scrollbar-track,
+.dsh-cpanel-body::-webkit-scrollbar-track { background: transparent; }
+.dsh-store-list::-webkit-scrollbar-thumb,
+.dsh-cpanel-body::-webkit-scrollbar-thumb {
+  background: rgba(120, 140, 200, 0.25);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+.dsh-store-list::-webkit-scrollbar-thumb:hover,
+.dsh-cpanel-body::-webkit-scrollbar-thumb:hover { background: rgba(120, 140, 200, 0.45); }
+/* ---------- 边缘淡出（列表底部渐变沉入感） ---------- */
+.dsh-store-list {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%);
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+}
+/* ---------- 骨架屏 shimmer 动画 ---------- */
+@keyframes dsh-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.dsh-shimmer {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(120,140,200,0.06) 0%, rgba(120,140,200,0.15) 50%, rgba(120,140,200,0.06) 100%);
+  background-size: 200% 100%;
+  animation: dsh-shimmer 1.8s ease-in-out infinite;
+}
+/* 安装按钮脉冲呼吸（安装中状态） */
+@keyframes dsh-pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(77,107,254,0.3); }
+  50% { box-shadow: 0 0 20px rgba(77,107,254,0.6), 0 0 40px rgba(77,107,254,0.15); }
+}
+.dsh-install.dsh-installing {
+  animation: dsh-pulse-glow 1.2s ease-in-out infinite;
+  filter: brightness(1.1);
+}
+/* ---------- 空状态提示 ---------- */
+.dsh-store-empty {
+  text-align: center; padding: 28px 18px 18px; color: var(--dsh-card-dim, #7b8bb8);
+  font-size: 12.5px; line-height: 1.7;
+}
+.dsh-store-empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+.dsh-store-empty-hint { font-size: 11px; color: rgba(120,140,200,0.5); margin-top: 6px; }
+/* 控制面板主题色块预览 */
+.dsh-theme-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  margin-right: 5px; vertical-align: -1px; border: 1px solid rgba(255,255,255,0.15);
+}
+.dsh-theme-dot.aurora { background: linear-gradient(135deg, #4d6bfe, #00e5ff); }
+.dsh-theme-dot.cyber { background: linear-gradient(135deg, #d946ef, #22d3ee); }
+.dsh-theme-dot.emerald { background: linear-gradient(135deg, #10b981, #34d399); }
+.dsh-theme-dot.midnight { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.dsh-theme-dot.light { background: linear-gradient(135deg, #4d6bfe, #00a3c8); border-color: rgba(0,0,0,0.12); }
+/* 幽灵按钮（次要操作） */
+.dsh-store-more {
+  background: transparent; border: 1px solid var(--dsh-chip-border);
+  color: var(--dsh-card-dim);
+  border-radius: 10px; padding: 7px 0; font-size: 12px; cursor: pointer;
+  transition: var(--dsh-transition);
+}
+.dsh-store-more:hover { background: rgba(77, 107, 254, 0.1); border-color: var(--dsh-tb-accent1); color: var(--dsh-card-fg); backdrop-filter: blur(4px); }
+.dsh-store-more:active { transform: scale(0.97); }
+.dsh-store-more:disabled { opacity: 0.4; cursor: default; }
 .dsh-term-fab {
   flex: 0 0 auto;
   height: 28px; padding: 0 12px;
@@ -1203,15 +1335,16 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 .dsh-store-sects { display: flex; gap: 6px; padding: 9px 14px 0; flex-wrap: wrap; }
 .dsh-store-sect {
   background: transparent; border: 1px solid rgba(120, 160, 240, 0.22);
-  color: var(--dsh-card-dim, #8ba0c8); border-radius: 999px; padding: 4px 13px;
+  color: var(--dsh-card-dim, #8ba0c8); border-radius: 999px; padding: 5px 14px;
   font-size: 11.5px; cursor: pointer; white-space: nowrap; font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  transition: var(--dsh-transition);
 }
 .dsh-store-sect:hover { border-color: rgba(120, 160, 240, 0.45); color: var(--dsh-card-fg, #d5deef); transform: translateY(-1px); }
+.dsh-store-sect:active { transform: scale(0.97); }
 .dsh-store-sect.on {
   background: linear-gradient(135deg, rgba(77, 107, 254, 0.3), rgba(0, 229, 255, 0.13));
   color: #fff; border-color: rgba(120, 160, 240, 0.55);
-  box-shadow: 0 2px 10px rgba(77, 107, 254, 0.22);
+  box-shadow: var(--dsh-ring);
 }
 .dsh-store-grid { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; }
 .dsh-plug-card {
@@ -1354,13 +1487,15 @@ body.dsh-fx-light .dsh-dt-trans { color: #4a5a85; }
 
 /* ---------- 全局页面内 toast（右下角「✔ 已更换成功」） ---------- */
 .dsh-toast {
-  position: fixed; right: 22px; bottom: 26px; z-index: 2147483000;
-  max-width: 420px; padding: 11px 18px; border-radius: 12px;
-  background: rgba(10, 16, 32, 0.92); color: #e6eefc;
-  border: 1px solid rgba(64, 224, 160, 0.55);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(64, 224, 160, 0.25);
+  position: fixed; right: 20px; bottom: 24px; z-index: 2147483000;
+  max-width: 420px; padding: 11px 18px; border-radius: 14px;
+  background: color-mix(in srgb, var(--dsh-card-bg) 88%, transparent);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  color: #e6eefc;
+  border: 1px solid rgba(64, 224, 160, 0.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(64,224,160,0.2), var(--dsh-ring);
   font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
-  opacity: 0; transform: translateY(12px); pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  opacity: 0; transform: translateY(16px) scale(0.95); pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.34,1.56,0.64,1), transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
 }
-.dsh-toast.show { opacity: 1; transform: translateY(0); }
+.dsh-toast.show { opacity: 1; transform: translateY(0) scale(1); }
