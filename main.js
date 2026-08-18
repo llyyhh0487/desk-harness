@@ -1866,7 +1866,7 @@ function saveStoreCache(repos) {
 
 async function fetchAllTopicPages() {
   const all = [];
-  for (let page = 1; page <= 5; page++) {
+  for (let page = 1; page <= 10; page++) {
     try {
       const { repos, hasMore } = await fetchStorePage(page);
       log('store index: page', page, '->', repos.length, 'repos, hasMore =', hasMore);
@@ -1908,7 +1908,7 @@ async function fetchStoreIndexViaSearchApi() {
   const seen = new Set();
   const out = [];
   for (const q of queries) {
-    for (let page = 1; page <= 2; page++) {
+    for (let page = 1; page <= 5; page++) {
       try {
         const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=100&page=${page}`, {
           headers: { 'user-agent': STORE_UA, accept: 'application/vnd.github+json' },

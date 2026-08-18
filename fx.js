@@ -575,6 +575,29 @@
         renderStoreList();
       });
     });
+    // 手动安装：索引未收录的低星插件可直接输入 owner/repo 安装（如 xzyonline/dsh-chat-files）
+    var manualRow = $('div', 'dsh-store-manual', storeEl);
+    var manualInput = $('input', 'dsh-store-manual-input', manualRow);
+    manualInput.placeholder = lang === 'en' ? 'Install by name: owner/repo or @scope/pkg' : '\u624B\u52A8\u5B89\u88C5\uFF1A\u8F93\u5165 owner/repo \u6216 @scope/pkg';
+    manualInput.setAttribute('spellcheck', 'false');
+    manualInput.setAttribute('autocomplete', 'off');
+    var manualBtn = $('button', 'dsh-store-manual-btn', manualRow);
+    manualBtn.textContent = lang === 'en' ? 'Install' : '\u5B89\u88C5';
+    var doManualInstall = function () {
+      var raw = manualInput.value.trim();
+      if (!raw) return;
+      // 支持粘贴 GitHub URL：https://github.com/owner/repo → 提取 owner/repo
+      var urlMatch = raw.match(/github\.com\/([^\/]+\/[^\/]+?)(?:\/|$|\.git)/i);
+      if (urlMatch) raw = urlMatch[1];
+      manualInput.value = raw;
+      if (!/^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+){0,2}$/.test(raw) || raw.length > 200) {
+        showStoreStatus(lang === 'en' ? 'Invalid name format' : '\u63D2\u4EF6\u540D\u683C\u5F0F\u65E0\u6548\uFF0C\u5E94\u4E3A owner/repo \u6216 @scope/pkg', 'fail');
+        return;
+      }
+      installPlugins([raw], undefined);
+    };
+    manualBtn.addEventListener('click', doManualInstall);
+    manualInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doManualInstall(); });
     tagsEl = $('div', 'dsh-store-tags', storeEl);
     storeListEl = $('div', 'dsh-store-list', storeEl);
     // 滚动到底自动加载更多（网页式自由浏览）

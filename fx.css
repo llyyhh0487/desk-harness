@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    DeepSeek Harness 桌面版 · fx 样式层（注入，不修改网页版 UI）
    ============================================================ */
 
@@ -534,6 +534,22 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   background: linear-gradient(90deg, #dc2626, #f43f5e);
   box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
 }
+/* 手动安装：索引未收录的插件直接输入仓库名安装 */
+.dsh-store-manual {
+  display: flex; gap: 6px; padding: 6px 14px 0;
+  align-items: center;
+}
+.dsh-store-manual-input {
+  flex: 1; background: rgba(12,16,30,0.55); color: #c9d6ff;
+  border: 1px solid rgba(120,140,200,0.18); border-radius: 8px;
+  padding: 6px 10px; font-size: 12px; outline: none; font-family: inherit;
+}
+.dsh-store-manual-input:focus { border-color: var(--dsh-tb-accent2); }
+.dsh-store-manual-btn {
+  flex: none; font-size: 12px; padding: 6px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(77,107,254,0.5); background: rgba(77,107,254,0.18); color: #b8c8ff;
+}
+.dsh-store-manual-btn:hover { background: rgba(77,107,254,0.32); }
 .dsh-store-foot {
   display: flex; gap: 8px; padding: 10px 14px;
   border-top: 1px solid rgba(120, 140, 200, 0.15);
