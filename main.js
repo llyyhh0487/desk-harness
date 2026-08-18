@@ -1438,7 +1438,7 @@ async function probeNpmPackage(pkg) {
   const altReg = reg.includes('npmmirror') ? 'https://registry.npmjs.org' : 'https://registry.npmmirror.com';
   for (const r of [reg, altReg]) {
     try {
-      const res = await fetch(`${r}/${pkg}`, { headers: { 'user-agent': STORE_UA } });
+      const res = await fetch(`${r}/${pkg}`, { headers: { 'user-agent': STORE_UA }, signal: AbortSignal.timeout(20000) });
       if (res.ok) {
         const j = await res.json();
         if (j && j.name && !j.error) {
@@ -1455,36 +1455,46 @@ async function probeNpmPackage(pkg) {
 }
 
 async function resolveInstallSpec(fullName) {
-  const f = String(fullName || '');
-  // npm 索引条目（npm/<包名>）或裸作用域包名（@scope/pkg）：
-  // 本身就是 npm 包名，直接走注册表安装（更新按钮正是走这条链路）
+  const f = String(fullName || '').trim();
+  // A) npm 索引条目（npm/<包名>）或裸作用域包名（@scope/pkg）：
+  //    本身就是 npm 包名，直接走注册表安装（更新按钮正是走这条链路）
   if (f.indexOf('npm/') === 0 || /^@[^/]+\//.test(f)) {
     const pkg = f.indexOf('npm/') === 0 ? f.slice(4) : f;
     const hit = await probeNpmPackage(pkg);
     if (hit) return { kind: 'npm', spec: pkg, registry: hit.registry, hasBundle: hit.hasBundle, latest: hit.latest };
     return { kind: 'npm', spec: pkg, registry: 'https://registry.npmjs.org', hasBundle: false, latest: '' };
   }
-  // 0) GitHub 直连不可达（常见于国内网络）：先按仓库名猜 npm 包名
+  // B) 裸包名（无斜杠，如 dsh-file-upload）：按 npm 包名直接处理，
+  //    绝不下沉到 git —— git 路径没有 owner/repo 会拼出 github:null/xxx 报错
+  if (!f.includes('/')) {
+    const hit = await probeNpmPackage(f);
+    if (hit) return { kind: 'npm', spec: f, registry: hit.registry, hasBundle: hit.hasBundle, latest: hit.latest };
+    return { kind: 'err', detail: `npm \u4E0A\u627E\u4E0D\u5230\u5305\u300C${f}\u300D\uFF1B\u5982\u679C\u662F GitHub \u63D2\u4EF6\uFF0C\u8BF7\u7528 owner/repo \u683C\u5F0F\u8F93\u5165` };
+  }
+  // C) owner/repo 格式校验：必须恰好一段斜杠，否则给明确错误
+  const segs = f.split('/');
+  const owner = segs[0];
+  const repo = segs[1];
+  if (segs.length !== 2 || !owner || !repo || !/^[A-Za-z0-9._-]+$/.test(owner) || !/^[A-Za-z0-9._-]+$/.test(repo)) {
+    return { kind: 'err', detail: `\u63D2\u4EF6\u540D\u683C\u5F0F\u65E0\u6548\uFF1A${f}\uFF1B\u6B63\u786E\u683C\u5F0F owner/repo \u6216 npm \u5305\u540D` };
+  }
+  // D) GitHub 直连不可达（常见于国内网络）：先按仓库名猜 npm 包名
   //    （owner/repo → repo、owner-repo），repository 字段与 owner/repo 一致才算命中
-  const owner = String(f.split('/')[0] || '');
-  const repo = String(f.split('/')[1] || f);
-  if (owner && repo) {
-    for (const guess of [repo, owner + '-' + repo]) {
-      if (!/^[A-Za-z0-9@._-]+$/.test(guess)) continue;
-      const hit = await probeNpmPackage(guess);
-      if (!hit) continue;
-      try {
-        const res = await fetch(`${hit.registry}/${guess}`, { headers: { 'user-agent': STORE_UA } });
-        if (res.ok) {
-          const j = await res.json();
-          const repoUrl = String((j && j.repository && j.repository.url) || '').toLowerCase();
-          if (repoUrl && repoUrl.includes((owner + '/' + repo).toLowerCase())) {
-            log(`plugin install ${fullName}: npm-guess hit ${guess} (repository matches)`);
-            return { kind: 'npm', spec: guess, registry: hit.registry, hasBundle: !!(j && j.dsh && j.dsh.bundle), latest: hit.latest };
-          }
+  for (const guess of [repo, owner + '-' + repo]) {
+    if (!/^[A-Za-z0-9@._-]+$/.test(guess)) continue;
+    const hit = await probeNpmPackage(guess);
+    if (!hit) continue;
+    try {
+      const res = await fetch(`${hit.registry}/${guess}`, { headers: { 'user-agent': STORE_UA }, signal: AbortSignal.timeout(15000) });
+      if (res.ok) {
+        const j = await res.json();
+        const repoUrl = String((j && j.repository && j.repository.url) || '').toLowerCase();
+        if (repoUrl && repoUrl.includes((owner + '/' + repo).toLowerCase())) {
+          log(`plugin install ${fullName}: npm-guess hit ${guess} (repository matches)`);
+          return { kind: 'npm', spec: guess, registry: hit.registry, hasBundle: !!(j && j.dsh && j.dsh.bundle), latest: hit.latest };
         }
-      } catch { /* ignore */ }
-    }
+      }
+    } catch { /* ignore */ }
   }
   // 1) 读仓库 package.json 的 name 字段（镜像优先，GitHub 直连不通时也能解析）
   let pkgName = null;
@@ -1902,11 +1912,14 @@ function searchApiItemToRepo(it) {
 }
 
 async function fetchStoreIndexViaSearchApi() {
-  // GitHub 搜索 API 聚合：topic 精确匹配 + 名称/描述宽泛匹配 + topic 按更新时间排序（补漏低星活跃插件）
-  // 两种排序（stars + updated）取并集，覆盖 6519 个 dsh-plugin 仓库的不同子集
+  // GitHub 搜索 API 聚合：多种排序取并集，覆盖 6519 个 dsh-plugin 仓库的不同子集
+  // （search API 单查询上限 1000 条；stars/updated/forks/best-match 四种排序各取一段，
+  //  配合 npm 索引，可覆盖大部分插件；有 ghToken 时页数更多）
   const queries = [
     { q: 'topic:dsh-plugin', sort: 'stars' },
     { q: 'topic:dsh-plugin', sort: 'updated' },
+    { q: 'topic:dsh-plugin', sort: 'forks' },
+    { q: 'topic:dsh-plugin', sort: '' },        // best-match
     { q: 'deepseek harness plugin in:name,description', sort: 'stars' },
   ];
   const seen = new Set();
@@ -1916,10 +1929,12 @@ async function fetchStoreIndexViaSearchApi() {
     if (cfg.ghToken) h.authorization = 'token ' + cfg.ghToken;
     return h;
   };
+  const maxPages = cfg.ghToken ? 10 : 5; // 有 token 30次/分钟 → 10页；无 token 10次/分钟 → 5页
   for (const qu of queries) {
-    for (let page = 1; page <= 5; page++) {
+    for (let page = 1; page <= maxPages; page++) {
       try {
-        const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(qu.q)}&sort=${qu.sort}&order=desc&per_page=100&page=${page}`;
+        const sortParam = qu.sort ? `&sort=${qu.sort}&order=desc` : '';
+        const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(qu.q)}${sortParam}&per_page=100&page=${page}`;
         const res = await fetch(url, { headers: ghHeaders() });
         if (!res.ok) break; // 该查询分页到头或限流
         const j = await res.json();
@@ -1931,10 +1946,11 @@ async function fetchStoreIndexViaSearchApi() {
           seen.add(key);
           out.push(repo);
         }
+        await new Promise((r) => setTimeout(r, cfg.ghToken ? 200 : 1200)); // 限速节流，避免 403
       } catch (e) { break; }
     }
   }
-  log('store index search api:', out.length, 'repos (', queries.length, 'queries x 5 pages)');
+  log('store index search api:', out.length, 'repos (', queries.length, 'queries x up to', maxPages, 'pages)');
   return out;
 }
 
@@ -1949,7 +1965,7 @@ async function fetchNpmIndex() {
   const seen = new Set();
   const out = [];
   for (const query of queries) {
-    for (let from = 0; from < 500; from += 250) {
+    for (let from = 0; from < 1000; from += 250) {
       try {
         const res = await fetch(`https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(query.q)}&size=250&from=${from}`, {
           headers: { 'user-agent': STORE_UA },
@@ -3001,6 +3017,12 @@ ipcMain.handle('store:install', async (_e, payload) => {
     let spec = { kind: 'git', spec: `github:${fullName}` };
     try {
       spec = await resolveInstallSpec(fullName);
+      // 解析失败（格式错误 / npm 找不到）：直接报明确错误，不再拼坏命令
+      if (spec.kind === 'err') {
+        push({ fullName, state: 'fail', detail: spec.detail });
+        results.push({ fullName, ok: false, detail: spec.detail, hasBundle: false });
+        continue;
+      }
       // npm 安装统一钉住明确版本：pnpm ≥11 的 minimumReleaseAge 供应链策略会让
       // `add <pkg>`（@latest）落回旧版 —— 实测 @liustack/modlens 3.18.0 被策略挡下、
       // 两次更新都装成 3.16.6。显式版本号由 pnpm 自动加入 minimumReleaseAgeExclude
@@ -3040,7 +3062,23 @@ ipcMain.handle('store:install', async (_e, payload) => {
       }));
       if (fresh.length) {
         log('store install rollback: removing half-installed deps', fresh.join(', '));
-        await runPluginRemove(fresh);
+        const rr = await runPluginRemove(fresh);
+        if (!rr.ok) {
+          // pnpm remove 失败（网络/锁）时直接清理：改 package.json + 删 node_modules 目录，
+          // 保证「失败 = 未安装」状态一致，不留半安装残渣
+          log('rollback: pnpm remove failed, direct cleanup:', rr.detail);
+          try {
+            const pj = JSON.parse(fs.readFileSync(path.join(profileDir(), 'package.json'), 'utf8'));
+            fresh.forEach((d) => { if (pj.dependencies) delete pj.dependencies[d]; });
+            fs.writeFileSync(path.join(profileDir(), 'package.json'), JSON.stringify(pj, null, 2));
+            fresh.forEach((d) => {
+              const base = d.split('/').pop();
+              for (const dd of [d, base]) {
+                try { fs.rmSync(path.join(profileDir(), 'node_modules', dd), { recursive: true, force: true }); } catch { /* ignore */ }
+              }
+            });
+          } catch (e2) { log('rollback direct cleanup failed:', e2.message); }
+        }
         try { fs.appendFileSync(logFile, `\n[desktop] rollback: removed half-installed ${fresh.join(', ')}\n`); } catch { /* ignore */ }
       }
     } catch (e) { log('store install rollback failed:', e.message); }
