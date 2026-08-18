@@ -861,9 +861,13 @@ body.dsh-theme-midnight {
   margin: 0 2px 10px;
   border: 1px solid rgba(120, 140, 200, 0.14);
   border-radius: var(--dsh-radius-sm);
-  background: rgba(120, 140, 200, 0.05);
+  background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 76%, transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
   overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
+.dsh-cp-card:hover { border-color: rgba(120, 160, 240, 0.32); box-shadow: 0 4px 18px rgba(4, 8, 20, 0.25); }
 .dsh-cp-card-head {
   padding: 8px 12px 6px;
   border-bottom: 1px solid rgba(120, 140, 200, 0.08);
@@ -873,17 +877,20 @@ body.dsh-theme-midnight {
   color: var(--dsh-card-dim);
 }
 .dsh-cp-card .dsh-cp-row { padding: 7px 12px; }
-.dsh-cp-card .dsh-cp-row:hover { background: rgba(77, 107, 254, 0.08); }
+.dsh-cp-card .dsh-cp-row:hover { background: linear-gradient(90deg, rgba(77, 107, 254, 0.12), rgba(77, 107, 254, 0.04)); }
 .dsh-cp-row {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 12px; border-radius: var(--dsh-radius-sm); cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, padding-left 0.15s ease;
 }
-.dsh-cp-row:hover { background: rgba(77, 107, 254, 0.08); }
+.dsh-cp-row:hover { background: linear-gradient(90deg, rgba(77, 107, 254, 0.1), rgba(77, 107, 254, 0.03)); padding-left: 15px; }
 .dsh-cp-check, .dsh-cp-radio {
   accent-color: var(--dsh-tb-accent1);
   width: 15px; height: 15px; cursor: pointer; flex: 0 0 auto;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
+.dsh-cp-check:hover, .dsh-cp-radio:hover { transform: scale(1.15); }
+.dsh-cp-check:checked, .dsh-cp-radio:checked { filter: drop-shadow(0 0 5px var(--dsh-tb-accent1)); }
 .dsh-cp-label { font-size: 12.5px; color: var(--dsh-card-fg); flex: 1; min-width: 0; line-height: 1.45; }
 .dsh-cp-hint { font-size: 10.5px; color: var(--dsh-card-dim); white-space: nowrap; }
 /* 启动界面·欢迎语输入行 */
@@ -1208,16 +1215,39 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 }
 .dsh-store-grid { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; }
 .dsh-plug-card {
-  background: var(--dsh-card-bg, rgba(20, 26, 44, 0.72));
+  position: relative;
+  background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 78%, transparent);
+  backdrop-filter: blur(10px) saturate(1.25);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
   border: 1px solid var(--dsh-chip-border, rgba(120, 160, 240, 0.16));
   border-radius: 12px; padding: 11px 13px;
   cursor: pointer; user-select: none;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background 0.16s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+  overflow: hidden;
 }
+/* 渐变描边：hover 时浮现（mask 实现，只描边不铺色） */
+.dsh-plug-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: var(--dsh-accent-grad, linear-gradient(90deg, #4d6bfe, #00e5ff));
+  opacity: 0; transition: opacity 0.22s ease; pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.dsh-plug-card:hover::before { opacity: 1; }
 .dsh-plug-card:hover {
-  border-color: rgba(120, 160, 240, 0.5);
-  box-shadow: 0 6px 22px rgba(4, 8, 20, 0.35), 0 0 0 1px rgba(77, 107, 254, 0.18) inset;
-  transform: translateY(-1.5px);
+  border-color: rgba(120, 160, 240, 0.6);
+  box-shadow: 0 10px 28px rgba(4, 8, 20, 0.4), 0 0 0 1px rgba(77, 107, 254, 0.22) inset, 0 0 18px rgba(77, 107, 254, 0.18);
+  transform: translateY(-2px) scale(1.008);
+  background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 88%, transparent);
+}
+.dsh-plug-card:active { transform: translateY(0) scale(0.995); }
+/* 卡片入场微动画（渐次出现，滚动加载时不突兀） */
+.dsh-plug-card { animation: dsh-card-in 0.22s ease both; }
+@keyframes dsh-card-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .dsh-plug-card-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .dsh-plug-card-name {
