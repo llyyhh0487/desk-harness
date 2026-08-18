@@ -1462,13 +1462,38 @@ async function resolveInstallSpec(fullName) {
     if (hit) return { kind: 'npm', spec: pkg, registry: hit.registry, hasBundle: hit.hasBundle, latest: hit.latest };
     return { kind: 'npm', spec: pkg, registry: 'https://registry.npmjs.org', hasBundle: false, latest: '' };
   }
-  // 1) 读仓库 package.json 的 name 字段（同时探测默认分支）
+  // 0) GitHub 直连不可达（常见于国内网络）：先按仓库名猜 npm 包名
+  //    （owner/repo → repo、owner-repo），repository 字段与 owner/repo 一致才算命中
+  const owner = String(f.split('/')[0] || '');
+  const repo = String(f.split('/')[1] || f);
+  if (owner && repo) {
+    for (const guess of [repo, owner + '-' + repo]) {
+      if (!/^[A-Za-z0-9@._-]+$/.test(guess)) continue;
+      const hit = await probeNpmPackage(guess);
+      if (!hit) continue;
+      try {
+        const res = await fetch(`${hit.registry}/${guess}`, { headers: { 'user-agent': STORE_UA } });
+        if (res.ok) {
+          const j = await res.json();
+          const repoUrl = String((j && j.repository && j.repository.url) || '').toLowerCase();
+          if (repoUrl && repoUrl.includes((owner + '/' + repo).toLowerCase())) {
+            log(`plugin install ${fullName}: npm-guess hit ${guess} (repository matches)`);
+            return { kind: 'npm', spec: guess, registry: hit.registry, hasBundle: !!(j && j.dsh && j.dsh.bundle), latest: hit.latest };
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  // 1) 读仓库 package.json 的 name 字段（镜像优先，GitHub 直连不通时也能解析）
   let pkgName = null;
   let hasBundle = false;
   let branch = 'main';
+  // raw.githubusercontent 直连不通时走镜像（gh-proxy 等），保证能读到仓库 package.json
+  const mirrorKey0 = cfg.storeMirror && MIRROR_PREFIX[cfg.storeMirror] ? cfg.storeMirror : 'direct';
+  const rawBase = mirrorKey0 !== 'direct' ? MIRROR_PREFIX[mirrorKey0] : 'https://';
   for (const b of ['master', 'main']) {
     try {
-      const res = await fetch(`https://raw.githubusercontent.com/${fullName}/${b}/package.json`, { headers: { 'user-agent': STORE_UA } });
+      const res = await fetch(`${rawBase}raw.githubusercontent.com/${fullName}/${b}/package.json`, { headers: { 'user-agent': STORE_UA } });
       if (res.ok) {
         branch = b;
         const j = await res.json();
@@ -1513,11 +1538,43 @@ function repairProfileBom() {
   } catch (e) { log('repairProfileBom failed:', e.message); }
 }
 
+// 修复 profile 的 pnpm-workspace.yaml（构建放行策略）：
+// 实测 pnpm 非交互模式会把「set this to true or false」占位文案写进 allowBuilds，
+// 导致 sharp/tesseract 等构建被忽略（ERR_PNPM_IGNORED_BUILDS）且依赖仍被写入
+// （半安装状态：界面显示已安装但实际失败）。这里统一清掉 allowBuilds 段并
+// 置 dangerouslyAllowAllBuilds: true —— 商店策略 = 放行全部依赖构建
+function repairProfilePnpmYaml() {
+  try {
+    const ws = path.join(profileDir(), 'pnpm-workspace.yaml');
+    if (!fs.existsSync(ws)) return;
+    const lines = fs.readFileSync(ws, 'utf8').split(/\r?\n/);
+    const out = [];
+    let inAllowBuilds = false;
+    let hasDangerous = false;
+    let changed = false;
+    for (const line of lines) {
+      if (/^\s*allowBuilds\s*:\s*$/.test(line)) { inAllowBuilds = true; changed = true; continue; }
+      if (inAllowBuilds) {
+        if (/^\s+\S/.test(line)) continue; // 吞掉整个 allowBuilds 段
+        inAllowBuilds = false;
+      }
+      if (/^\s*dangerouslyAllowAllBuilds\s*:/i.test(line)) hasDangerous = true;
+      out.push(line);
+    }
+    if (!hasDangerous) { out.unshift('dangerouslyAllowAllBuilds: true'); changed = true; }
+    if (changed) {
+      fs.writeFileSync(ws, out.join('\n') + '\n');
+      log('profile pnpm-workspace.yaml repaired: allowBuilds cleared, dangerouslyAllowAllBuilds on');
+    }
+  } catch (e) { log('repairProfilePnpmYaml failed:', e.message); }
+}
+
 function runPluginInstallOnce(fullName, logFile, extraArgs, onProgress, mirrorOverride, installSpec) {
   return new Promise((resolve) => {
     const bin = findServerBin();
     if (!bin) { resolve({ ok: false, detail: '未找到 dsh 后端（node_modules\\@deepseek-ai\\dsh）' }); return; }
     repairProfileBom();
+    repairProfilePnpmYaml(); // 构建放行策略自修复：杜绝 ERR_PNPM_IGNORED_BUILDS 半安装
     const repoRoot = path.resolve(bin, '..', '..', '..', '..', '..');
     const cwd = (cfg.serverCwd && fs.existsSync(cfg.serverCwd)) ? cfg.serverCwd : repoRoot;
     let fd = null;
@@ -2915,6 +2972,12 @@ ipcMain.handle('store:install', async (_e, payload) => {
   };
   const tAll = Date.now();
   installCancelled = false;
+  // 失败回滚依据：记录安装前的依赖集（pnpm 构建被忽略时仍会写入依赖 → 半安装状态）
+  let beforeDeps = new Set();
+  try {
+    const beforePkg = JSON.parse(fs.readFileSync(path.join(profileDir(), 'package.json'), 'utf8'));
+    beforeDeps = new Set(Object.keys(beforePkg.dependencies || {}));
+  } catch { /* ignore */ }
   for (const item of list) {
     // item 可为字符串或 { fullName, updateTo }（更新按钮会携带目标版本号）
     const fullName = typeof item === 'string' ? String(item) : String(item.fullName);
@@ -2956,6 +3019,24 @@ ipcMain.handle('store:install', async (_e, payload) => {
     if (!r.ok) log('plugin install failed:', fullName, r.detail);
   }
   log('store install batch done in', Math.round((Date.now() - tAll) / 1000), 's');
+  // 失败回滚：pnpm 在构建被忽略时仍会把依赖写进 package.json/node_modules（半安装），
+  // 清理「安装前不存在、且属于失败插件」的新依赖，保证「失败 = 未安装」状态一致
+  const failedNames = results.filter((x) => !x.ok).map((x) => String(x.fullName || ''));
+  if (failedNames.length) {
+    try {
+      const afterPkg = JSON.parse(fs.readFileSync(path.join(profileDir(), 'package.json'), 'utf8'));
+      const afterDeps = Object.keys(afterPkg.dependencies || {});
+      const fresh = afterDeps.filter((d) => !beforeDeps.has(d) && failedNames.some((f) => {
+        const base = String(f).split('/').pop().replace(/^npm\//, '');
+        return d === base || String(d).split('/').pop() === base;
+      }));
+      if (fresh.length) {
+        log('store install rollback: removing half-installed deps', fresh.join(', '));
+        await runPluginRemove(fresh);
+        try { fs.appendFileSync(logFile, `\n[desktop] rollback: removed half-installed ${fresh.join(', ')}\n`); } catch { /* ignore */ }
+      }
+    } catch (e) { log('store install rollback failed:', e.message); }
+  }
   // 装完后使更新缓存失效：红点/「有更新」徽标立即按新状态重算
   if (results.some((x) => x.ok)) { updatesCache = null; updatesCacheAt = 0; }
   return { results, restartable: true };
@@ -3173,6 +3254,7 @@ async function bootstrap() {
   migrateLegacyDeployDir(); // 旧版自选部署目录 → 一次性迁移到安装目录固定位置（幂等）
   ensureNpxShim(); // 内置环境已有但缺 npx 外壳 → 静默补齐
   await ensurePnpmWrapper(); // 内置 pnpm 为新版禁构建版本 → 放行构建外壳（幂等）
+  repairProfilePnpmYaml(); // profile 构建放行策略自修复（幂等）
 
   // 首次运行 OR 配置声称已部署但实际找不到 dsh 后端（部署目录被删/移动/残留配置）：
   // 校验部署标志真实性，失效则重置并重新走环境检测/一键部署，而不是直接报「未找到后端」
