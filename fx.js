@@ -858,8 +858,9 @@
       }
       return;
     }
-    list.forEach(function (r) {
+    list.forEach(function (r, i) {
       var card = $('div', 'dsh-plug', storeListEl);
+      card.style.animationDelay = (i * 40) + 'ms';
       var st = storeState.statuses[r.fullName];
       if (st && st.state === 'installing') card.classList.add('installing');
       card.addEventListener('click', function () { openDetail(r); });
@@ -907,7 +908,7 @@
         badge.textContent = '\u5DF2\u5B89\u88C5';
       }
       var uninstalling = st && st.state === 'uninstalling';
-      var btn = $('button', 'dsh-install' + ((installed || uninstalling) ? ' dsh-uninstall' : '') + (st && st.state === 'installing' ? ' dsh-cancel' : ''), bot);
+      var btn = $('button', 'dsh-install' + ((installed || uninstalling) ? ' dsh-uninstall' : '') + (st && st.state === 'installing' ? ' dsh-cancel dsh-installing' : ''), bot);
       if (uninstalling) {
         btn.textContent = '\u5378\u8F7D\u4E2D\u2026';
         btn.disabled = true;
@@ -1000,12 +1001,13 @@
         : (storeState.error ? ('\u52A0\u8F7D\u5931\u8D25\uFF1A' + storeState.error) : (storeState.busy ? '\u52A0\u8F7D\u4E2D\u2026' : '\u6682\u65E0\u6570\u636E'));
       return;
     }
-    cards.forEach(function (r) { buildStoreCard(wrap, r, section === 'mine'); });
+    cards.forEach(function (r, i) { buildStoreCard(wrap, r, section === 'mine', i); });
     updateBatchBtn();
   }
 
-  function buildStoreCard(parent, r, isMine) {
+  function buildStoreCard(parent, r, isMine, idx) {
     var card = $('div', 'dsh-plug-card', parent);
+    card.style.animationDelay = ((idx || 0) * 40) + 'ms';
     var st = storeState.statuses[r.fullName];
     if (st && st.state === 'installing') card.classList.add('installing');
     card.addEventListener('click', function () { openDetail(r); });
@@ -1067,7 +1069,7 @@
         doInstall([{ fullName: r.fullName, updateTo: upd.latest }], null);
       });
     }
-    var btn = $('button', 'dsh-install' + ((installed || uninstalling) ? ' dsh-uninstall' : '') + (st && st.state === 'installing' ? ' dsh-cancel' : ''), bot);
+    var btn = $('button', 'dsh-install' + ((installed || uninstalling) ? ' dsh-uninstall' : '') + (st && st.state === 'installing' ? ' dsh-cancel dsh-installing' : ''), bot);
     if (uninstalling) {
       btn.textContent = '\u5378\u8F7D\u4E2D\u2026';
       btn.disabled = true;
@@ -2000,10 +2002,12 @@
       midnight: lang === 'en' ? 'Midnight Gold' : '\u5348\u591C\u91D1',
     };
     cpState.themes.forEach(function (t) {
-      cpRow(sec, themeLabels[t.id] || t.label, 'radio', { group: 'dsh-theme', checked: cfg.themeId === t.id }, function () {
+      var row = cpRow(sec, themeLabels[t.id] || t.label, 'radio', { group: 'dsh-theme', checked: cfg.themeId === t.id }, function () {
         win('theme-set', t.id);
         cpState.cfg.themeId = t.id;
       });
+      var lab = row.querySelector('.dsh-cp-label');
+      if (lab) lab.innerHTML = '<span class="dsh-theme-dot ' + t.id + '"></span>' + lab.textContent;
     });
     // 背景
     sec = cpAddSection(body, T('cpBg'));

@@ -1377,7 +1377,7 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 }
 .dsh-plug-card:active { transform: translateY(0) scale(0.995); }
 /* 卡片入场微动画（渐次出现，滚动加载时不突兀） */
-.dsh-plug-card { animation: dsh-card-in 0.22s ease both; }
+.dsh-plug-card, .dsh-plug { animation: dsh-card-in 0.22s ease both; }
 @keyframes dsh-card-in {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
