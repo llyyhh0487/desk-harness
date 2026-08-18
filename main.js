@@ -97,6 +97,8 @@ let cfg = {
   serverBin: null,          // 手动指定 dsh bin.js 路径（跨环境兼容）
   serverCwd: null,          // 手动指定服务工作目录
   storeMirror: 'direct',    // 插件下载镜像源
+  ghToken: null,            // GitHub Token（public_repo 即可）：商店索引速率限制从10次/分钟提升到30次，
+                            // 能覆盖约3000+个插件（无token时约1160个）。不填不影响功能，只是索引量少。
   closeRemember: false,     // 记住关闭选择
   closeChoice: 'tray',      // 记住的关闭选择 tray | quit
   pinTop: false,            // 窗口置顶
@@ -1900,19 +1902,25 @@ function searchApiItemToRepo(it) {
 }
 
 async function fetchStoreIndexViaSearchApi() {
-  // GitHub 搜索 API 聚合：topic 精确匹配 + 名称/描述宽泛匹配
+  // GitHub 搜索 API 聚合：topic 精确匹配 + 名称/描述宽泛匹配 + topic 按更新时间排序（补漏低星活跃插件）
+  // 两种排序（stars + updated）取并集，覆盖 6519 个 dsh-plugin 仓库的不同子集
   const queries = [
-    'topic:dsh-plugin',
-    'deepseek harness plugin in:name,description',
+    { q: 'topic:dsh-plugin', sort: 'stars' },
+    { q: 'topic:dsh-plugin', sort: 'updated' },
+    { q: 'deepseek harness plugin in:name,description', sort: 'stars' },
   ];
   const seen = new Set();
   const out = [];
-  for (const q of queries) {
+  const ghHeaders = () => {
+    const h = { 'user-agent': STORE_UA, accept: 'application/vnd.github+json' };
+    if (cfg.ghToken) h.authorization = 'token ' + cfg.ghToken;
+    return h;
+  };
+  for (const qu of queries) {
     for (let page = 1; page <= 5; page++) {
       try {
-        const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=100&page=${page}`, {
-          headers: { 'user-agent': STORE_UA, accept: 'application/vnd.github+json' },
-        });
+        const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(qu.q)}&sort=${qu.sort}&order=desc&per_page=100&page=${page}`;
+        const res = await fetch(url, { headers: ghHeaders() });
         if (!res.ok) break; // 该查询分页到头或限流
         const j = await res.json();
         if (!j || !Array.isArray(j.items) || !j.items.length) break;
@@ -1926,7 +1934,7 @@ async function fetchStoreIndexViaSearchApi() {
       } catch (e) { break; }
     }
   }
-  log('store index search api:', out.length, 'repos');
+  log('store index search api:', out.length, 'repos (', queries.length, 'queries x 5 pages)');
   return out;
 }
 
