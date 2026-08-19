@@ -1644,31 +1644,50 @@
       cardHtml += '<div class="dsh-tc-sec">\u5168\u5C40\u7D2F\u8BA1\uFF08\u6240\u6709\u4F1A\u8BDD\uFF09</div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u5165\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6 + \u7F13\u5B58\u5199\u5165') + '</span><span class="dsh-tc-v">' + fmt(tot.in + tot.cacheR + tot.cacheW) + '</span></div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u51FA\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u6A21\u578B\u751F\u6210 token \u603B\u548C') + '</span><span class="dsh-tc-v">' + fmt(tot.out) + '</span></div>';
-      // 会话明细：按 sessionId 去重合并，排除当前会话（已在上面单独展示），只显示最近 5 条
-      var seenIds = {};
+      // 会话明细：按 title 合并相同标题的会话（fork/subagent 会产生多个同标题会话），
+      // 排除当前会话（已在上面单独展示），按最近更新时间排序取前 5 组
       var actId = act ? act.sessionId : null;
-      var merged = [];
+      var groups = {};   // key -> { title, count, in, out, cache, turns, steps, llmMs, updatedAt, running }
       items.forEach(function (s) {
         if (!s || !s.sessionId) return;
-        if (seenIds[s.sessionId]) return;
-        seenIds[s.sessionId] = true;
-        if (actId && s.sessionId === actId) return; // 当前会话已在上面展示，不重复
-        merged.push(s);
-      });
-      merged.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
-      merged = merged.slice(0, 5);
-      merged.forEach(function (s) {
+        if (actId && s.sessionId === actId) return; // 当前会话已在上面展示
         var u = s.projections && s.projections.values && s.projections.values.tokenUsage;
         var st = s.projections && s.projections.values && s.projections.values.sessionStats;
-        var t = s.projections && s.projections.values && s.projections.values.title;
-        cardHtml += '<div class="dsh-tc-row' + (s.running ? ' dsh-tc-running' : '') + '">'
-          + '<span class="dsh-tc-name">' + escapeHtml(t || s.sessionId.slice(-8)) + '</span>'
-          + '<span class="dsh-tc-nums">' + (u ? '\u5165 ' + fmt(u.uncachedInputTokens) + ' · \u51FA ' + fmt(u.outputTokens) + (u.cacheReadTokens ? ' · \u7F13\u5B58 ' + fmt(u.cacheReadTokens) : '') : '\u2014') + '</span>'
-          + '<span class="dsh-tc-meta">' + (st ? st.turns + ' \u8F6E · ' + st.steps + ' \u6B65 · ' + fmtDur(st.llmMs) : '') + (s.running ? ' · \u8FDB\u884C\u4E2D' : '') + '</span>'
+        var t = (s.projections && s.projections.values && s.projections.values.title) || '';
+        var key = t || ('__id__' + s.sessionId); // 无标题会话各自独立，不合并
+        if (!groups[key]) {
+          groups[key] = { title: t, count: 0, in: 0, out: 0, cache: 0, turns: 0, steps: 0, llmMs: 0, updatedAt: 0, running: false };
+        }
+        var g = groups[key];
+        g.count++;
+        if (u) {
+          g.in += u.uncachedInputTokens || 0;
+          g.out += u.outputTokens || 0;
+          g.cache += u.cacheReadTokens || 0;
+        }
+        if (st) {
+          g.turns += st.turns || 0;
+          g.steps += st.steps || 0;
+          g.llmMs += st.llmMs || 0;
+        }
+        if ((s.updatedAt || 0) > g.updatedAt) g.updatedAt = s.updatedAt || 0;
+        if (s.running) g.running = true;
+      });
+      var merged = Object.keys(groups).map(function (k) { return groups[k]; });
+      merged.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      var totalMerged = merged.length;
+      merged = merged.slice(0, 5);
+      merged.forEach(function (g) {
+        var name = g.title || '\uFF08\u65E0\u6807\u9898\uFF09';
+        if (g.count > 1) name += ' \u00D7' + g.count;
+        cardHtml += '<div class="dsh-tc-row' + (g.running ? ' dsh-tc-running' : '') + '">'
+          + '<span class="dsh-tc-name">' + escapeHtml(name) + '</span>'
+          + '<span class="dsh-tc-nums">\u5165 ' + fmt(g.in) + ' · \u51FA ' + fmt(g.out) + (g.cache ? ' · \u7F13\u5B58 ' + fmt(g.cache) : '') + '</span>'
+          + '<span class="dsh-tc-meta">' + (g.turns ? g.turns + ' \u8F6E · ' + g.steps + ' \u6B65 · ' + fmtDur(g.llmMs) : '') + (g.running ? ' · \u8FDB\u884C\u4E2D' : '') + '</span>'
           + '</div>';
       });
-      if (merged.length >= 5) {
-        cardHtml += '<div class="dsh-tc-more">\u2026\u8FD8\u6709\u66F4\u591A\u4F1A\u8BDD\uFF08\u5DF2\u6298\u53E0\uFF09</div>';
+      if (totalMerged > 5) {
+        cardHtml += '<div class="dsh-tc-more">\u2026\u8FD8\u6709 ' + (totalMerged - 5) + ' \u7EC4\u4F1A\u8BDD\uFF08\u5DF2\u6298\u53E0\uFF09</div>';
       }
       if (tokenCard.__dshSig !== cardHtml) {
         tokenCard.innerHTML = cardHtml;
