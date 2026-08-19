@@ -27,7 +27,6 @@ body.dsh-fx-dark {
   --dsh-glow: 0 8px 30px rgba(4, 8, 20, 0.45);
   --dsh-ring: 0 0 0 1px rgba(255,255,255,0.12) inset, 0 0 12px rgba(77,107,254,0.18);
   --dsh-ring-offset: 0 0 0 3px rgba(77,107,254,0.14);
-  --dsh-text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   --dsh-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   --dsh-spring: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   --dsh-tb-shadow: 0 2px 18px rgba(8, 12, 30, 0.16);
@@ -62,7 +61,6 @@ body.dsh-fx-light {
   --dsh-glow: 0 8px 30px rgba(60, 80, 160, 0.18);
   --dsh-ring: 0 0 0 1px rgba(0,0,0,0.06) inset, 0 0 10px rgba(77,107,254,0.12);
   --dsh-ring-offset: 0 0 0 3px rgba(77,107,254,0.10);
-  --dsh-text-shadow: none;
   --dsh-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   --dsh-spring: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   --dsh-tb-shadow: 0 2px 14px rgba(80, 100, 180, 0.10);
@@ -313,6 +311,10 @@ body { transition: padding-top 0.28s ease, height 0.28s ease; }
 .dsh-tc-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh-tc-nums { color: var(--dsh-tb-accent2); }
 .dsh-tc-meta { color: var(--dsh-card-dim); font-size: 11px; }
+.dsh-tc-more {
+  padding: 6px 8px 2px; text-align: center; font-size: 11px;
+  color: var(--dsh-card-dim); opacity: 0.7;
+}
 
 /* ---------- 任务进度条 ---------- */
 .dsh-progress {
@@ -522,8 +524,7 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
 .dsh-plug {
   border: 1px solid rgba(120, 140, 200, 0.2); border-radius: var(--dsh-radius-sm);
   padding: 10px 12px; margin-bottom: 10px;
-  background: color-mix(in srgb, var(--dsh-card-bg) 80%, transparent);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  background: var(--dsh-chip-bg);
   transition: var(--dsh-transition);
 }
 .dsh-plug:hover {
@@ -547,7 +548,6 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   font-size: 10px; padding: 2px 8px; border-radius: 6px;
   background: rgba(52, 211, 153, 0.10); color: #34d399;
   border: 1px solid rgba(52, 211, 153, 0.3);
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
   transition: var(--dsh-transition);
 }
 .dsh-badge.upd {
@@ -579,16 +579,17 @@ body { transition: padding-right 0.3s cubic-bezier(0.65, 0, 0.35, 1); }
   align-items: center;
 }
 .dsh-store-manual-input {
-  flex: 1; background: color-mix(in srgb, var(--dsh-card-bg) 75%, transparent);
-  color: #eef3ff; border: 1px solid rgba(120,140,200,0.22); border-radius: 10px;
+  flex: 1; background: var(--dsh-chip-bg, rgba(18,25,45,0.75));
+  color: var(--dsh-card-fg, #eef3ff);
+  border: 1px solid var(--dsh-chip-border, rgba(120,140,200,0.22)); border-radius: 10px;
   padding: 7px 12px; font-size: 12.5px; outline: none; font-family: inherit;
   transition: var(--dsh-transition);
 }
-.dsh-store-manual-input::placeholder { color: rgba(170,185,220,0.65); font-size: 12px; }
+.dsh-store-manual-input::placeholder { color: var(--dsh-card-dim, rgba(170,185,220,0.65)); font-size: 12px; }
 .dsh-store-manual-input:focus {
   border-color: var(--dsh-tb-accent2);
   box-shadow: var(--dsh-ring-offset);
-  background: color-mix(in srgb, var(--dsh-card-bg) 88%, transparent);
+  background: var(--dsh-chip-bg, rgba(18,25,45,0.88));
 }
 .dsh-store-manual-btn {
   flex: none; font-size: 12.5px; padding: 7px 18px; border-radius: 10px; cursor: pointer;
@@ -918,9 +919,7 @@ body.dsh-theme-midnight {
   margin: 0 2px 10px;
   border: 1px solid rgba(120, 140, 200, 0.14);
   border-radius: var(--dsh-radius-sm);
-  background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 76%, transparent);
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  background: var(--dsh-chip-bg, rgba(20, 26, 44, 0.72));
   overflow: hidden;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -1116,23 +1115,7 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 }
 .dsh-store-list::-webkit-scrollbar-thumb:hover,
 .dsh-cpanel-body::-webkit-scrollbar-thumb:hover { background: rgba(120, 140, 200, 0.45); }
-/* ---------- 边缘淡出（列表底部渐变沉入感） ---------- */
-.dsh-store-list {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%);
-  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
-}
-/* ---------- 骨架屏 shimmer 动画 ---------- */
-@keyframes dsh-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-.dsh-shimmer {
-  border-radius: 8px;
-  background: linear-gradient(90deg, rgba(120,140,200,0.06) 0%, rgba(120,140,200,0.15) 50%, rgba(120,140,200,0.06) 100%);
-  background-size: 200% 100%;
-  animation: dsh-shimmer 1.8s ease-in-out infinite;
-}
+/* 边缘淡出已移除：滚动容器上的 mask-image 每帧强制重合成，导致滚动掉帧 */
 /* 安装按钮脉冲呼吸（安装中状态） */
 @keyframes dsh-pulse-glow {
   0%, 100% { box-shadow: 0 0 8px rgba(77,107,254,0.3); }
@@ -1377,9 +1360,7 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
 .dsh-store-grid { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; }
 .dsh-plug-card {
   position: relative;
-  background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 78%, transparent);
-  backdrop-filter: blur(10px) saturate(1.25);
-  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+  background: var(--dsh-chip-bg, rgba(20, 26, 44, 0.72));
   border: 1px solid var(--dsh-chip-border, rgba(120, 160, 240, 0.16));
   border-radius: 12px; padding: 11px 13px;
   cursor: pointer; user-select: none;
@@ -1404,12 +1385,7 @@ body.dsh-idle.dsh-aurora-on::before { animation-play-state: paused !important; }
   background: color-mix(in srgb, var(--dsh-card-bg, rgba(20, 26, 44, 0.72)) 88%, transparent);
 }
 .dsh-plug-card:active { transform: translateY(0) scale(0.995); }
-/* 卡片入场微动画（渐次出现，滚动加载时不突兀） */
-.dsh-plug-card, .dsh-plug { animation: dsh-card-in 0.22s ease both; }
-@keyframes dsh-card-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* 卡片入场动画已移除：滚动加载时重放动画导致掉帧，改用静态渲染 + hover 微交互 */
 .dsh-plug-card-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .dsh-plug-card-name {
   font-size: 13px; font-weight: 650; color: var(--dsh-card-fg, #e8eefc);

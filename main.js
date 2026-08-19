@@ -3843,6 +3843,7 @@ function reconnect() {
 // ---------------------------------------------------------------------------
 let notifyTimer = null;
 let sessionRunningState = new Map();
+let notifiedSessions = new Set(); // 已发过「任务完成」通知的会话，防止同一任务反复通知
 
 function desktopNotify(title, body) {
   try {
@@ -3891,11 +3892,21 @@ async function pollSessionNotify() {
     if (cfg.notify && !quitting) {
       for (const [id, prev] of sessionRunningState) {
         const cur = nowRunning.get(id);
-        if (cur && prev.running && !cur.running) {
+        // 会话由运行 → 停止，且该会话尚未发过完成通知 → 通知一次
+        if (cur && prev.running && !cur.running && !notifiedSessions.has(id)) {
           desktopNotify('任务完成', cur.title);
           log('notify: session done', cur.title);
+          notifiedSessions.add(id);
+        }
+        // 会话重新开始运行 → 清除已通知标记，等待下一次真正完成
+        if (cur && !prev.running && cur.running) {
+          notifiedSessions.delete(id);
         }
       }
+    }
+    // 清理已消失会话的标记（会话被删除后不再占用）
+    for (const id of notifiedSessions) {
+      if (!nowRunning.has(id)) notifiedSessions.delete(id);
     }
     sessionRunningState = nowRunning;
   } catch { /* ignore */ }

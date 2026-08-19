@@ -858,9 +858,8 @@
       }
       return;
     }
-    list.forEach(function (r, i) {
+    list.forEach(function (r) {
       var card = $('div', 'dsh-plug', storeListEl);
-      card.style.animationDelay = (i * 40) + 'ms';
       var st = storeState.statuses[r.fullName];
       if (st && st.state === 'installing') card.classList.add('installing');
       card.addEventListener('click', function () { openDetail(r); });
@@ -1001,13 +1000,12 @@
         : (storeState.error ? ('\u52A0\u8F7D\u5931\u8D25\uFF1A' + storeState.error) : (storeState.busy ? '\u52A0\u8F7D\u4E2D\u2026' : '\u6682\u65E0\u6570\u636E'));
       return;
     }
-    cards.forEach(function (r, i) { buildStoreCard(wrap, r, section === 'mine', i); });
+    cards.forEach(function (r) { buildStoreCard(wrap, r, section === 'mine'); });
     updateBatchBtn();
   }
 
-  function buildStoreCard(parent, r, isMine, idx) {
+  function buildStoreCard(parent, r, isMine) {
     var card = $('div', 'dsh-plug-card', parent);
-    card.style.animationDelay = ((idx || 0) * 40) + 'ms';
     var st = storeState.statuses[r.fullName];
     if (st && st.state === 'installing') card.classList.add('installing');
     card.addEventListener('click', function () { openDetail(r); });
@@ -1646,7 +1644,20 @@
       cardHtml += '<div class="dsh-tc-sec">\u5168\u5C40\u7D2F\u8BA1\uFF08\u6240\u6709\u4F1A\u8BDD\uFF09</div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u5165\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6 + \u7F13\u5B58\u5199\u5165') + '</span><span class="dsh-tc-v">' + fmt(tot.in + tot.cacheR + tot.cacheW) + '</span></div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u51FA\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u6A21\u578B\u751F\u6210 token \u603B\u548C') + '</span><span class="dsh-tc-v">' + fmt(tot.out) + '</span></div>';
+      // 会话明细：按 sessionId 去重合并，排除当前会话（已在上面单独展示），只显示最近 5 条
+      var seenIds = {};
+      var actId = act ? act.sessionId : null;
+      var merged = [];
       items.forEach(function (s) {
+        if (!s || !s.sessionId) return;
+        if (seenIds[s.sessionId]) return;
+        seenIds[s.sessionId] = true;
+        if (actId && s.sessionId === actId) return; // 当前会话已在上面展示，不重复
+        merged.push(s);
+      });
+      merged.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      merged = merged.slice(0, 5);
+      merged.forEach(function (s) {
         var u = s.projections && s.projections.values && s.projections.values.tokenUsage;
         var st = s.projections && s.projections.values && s.projections.values.sessionStats;
         var t = s.projections && s.projections.values && s.projections.values.title;
@@ -1656,6 +1667,9 @@
           + '<span class="dsh-tc-meta">' + (st ? st.turns + ' \u8F6E · ' + st.steps + ' \u6B65 · ' + fmtDur(st.llmMs) : '') + (s.running ? ' · \u8FDB\u884C\u4E2D' : '') + '</span>'
           + '</div>';
       });
+      if (merged.length >= 5) {
+        cardHtml += '<div class="dsh-tc-more">\u2026\u8FD8\u6709\u66F4\u591A\u4F1A\u8BDD\uFF08\u5DF2\u6298\u53E0\uFF09</div>';
+      }
       if (tokenCard.__dshSig !== cardHtml) {
         tokenCard.innerHTML = cardHtml;
         tokenCard.__dshSig = cardHtml;
