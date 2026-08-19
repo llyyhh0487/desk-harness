@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
@@ -8,76 +8,70 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; }
   body {
-    background: #04060e;
     font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
     color: #d7e2ff;
     display: flex; align-items: center; justify-content: center;
     user-select: none;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, #0c1330 0%, #060a18 55%, #030510 100%);
   }
-  /* ---------- 深空底色 + 极光流层 ---------- */
-  .space {
+  /* ---------- 流动渐变背景（motionsites gradient-shift） ---------- */
+  .bg-grad {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background:
-      radial-gradient(120% 90% at 50% 0%, rgba(23, 34, 72, 0.9) 0%, transparent 55%),
-      radial-gradient(90% 70% at 85% 100%, rgba(14, 26, 58, 0.8) 0%, transparent 60%),
-      linear-gradient(180deg, #05070f 0%, #070b18 45%, #04060e 100%);
+    --g1: #0c1440; --g2: #0a0f2c; --g3: #060918; --g4: #100830;
+    background: radial-gradient(120% 100% at 20% 0%, var(--g1) 0%, transparent 55%),
+                radial-gradient(100% 90% at 80% 100%, var(--g2) 0%, transparent 55%),
+                radial-gradient(80% 60% at 50% 30%, var(--g4) 0%, transparent 70%);
+    animation: gradShift 14s ease-in-out infinite alternate;
   }
-  .aurora {
-    position: fixed; border-radius: 50%; filter: blur(90px); z-index: 0; pointer-events: none;
-    opacity: 0.5; will-change: transform;
+  @keyframes gradShift {
+    0% { --g1:#0c1440; --g2:#0a0f2c; --g4:#100830; }
+    33% { --g1:#0a1238; --g2:#0c1630; --g4:#0e0a28; }
+    66% { --g1:#0e1438; --g2:#080e28; --g4:#140c30; }
+    100% { --g1:#0c1440; --g2:#0a0f2c; --g4:#100830; }
   }
-  .aurora.a1 {
-    width: 620px; height: 620px; left: -160px; top: -180px;
-    background: radial-gradient(circle at 40% 40%, rgba(77, 107, 254, 0.55), transparent 65%);
-    animation: drift1 16s ease-in-out infinite alternate;
+  /* ---------- 浮动玻璃光球（uiverse 风格） ---------- */
+  .orb {
+    position: fixed; border-radius: 50%; filter: blur(80px); z-index: 0; pointer-events: none;
+    opacity: 0.35; will-change: transform;
   }
-  .aurora.a2 {
-    width: 520px; height: 520px; right: -140px; bottom: -160px;
-    background: radial-gradient(circle at 60% 60%, rgba(0, 229, 255, 0.38), transparent 65%);
-    animation: drift2 19s ease-in-out infinite alternate-reverse;
-  }
-  .aurora.a3 {
-    width: 460px; height: 460px; left: 55%; top: 30%;
-    background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.34), transparent 65%);
-    animation: drift3 23s ease-in-out infinite alternate;
-  }
-  @keyframes drift1 { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(70px, 50px, 0) scale(1.12); } }
-  @keyframes drift2 { from { transform: translate3d(0, 0, 0) scale(1.05); } to { transform: translate3d(-60px, -46px, 0) scale(0.95); } }
-  @keyframes drift3 { from { transform: translate3d(0, 0, 0) scale(0.96); } to { transform: translate3d(44px, -60px, 0) scale(1.1); } }
-  /* ---------- 星点 ---------- */
-  .stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-  .star {
+  .orb.o1 { width: 400px; height: 400px; left: -100px; top: -80px;
+    background: radial-gradient(circle, rgba(77,107,254,0.5) 0%, transparent 70%);
+    animation: orbFloat1 18s ease-in-out infinite alternate; }
+  .orb.o2 { width: 350px; height: 350px; right: -80px; bottom: -100px;
+    background: radial-gradient(circle, rgba(0,229,255,0.35) 0%, transparent 70%);
+    animation: orbFloat2 22s ease-in-out infinite alternate-reverse; }
+  .orb.o3 { width: 280px; height: 280px; left: 50%; top: 40%;
+    background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+    animation: orbFloat3 20s ease-in-out infinite alternate; }
+  @keyframes orbFloat1 { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.15); } }
+  @keyframes orbFloat2 { from { transform: translate(0,0) scale(1.05); } to { transform: translate(-50px,-30px) scale(0.9); } }
+  @keyframes orbFloat3 { from { transform: translate(0,0) scale(0.95); } to { transform: translate(30px,-50px) scale(1.1); } }
+  /* ---------- 微细粒子（reactbits 浮动粒子） ---------- */
+  .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .dot {
     position: absolute; width: 2px; height: 2px; border-radius: 50%;
-    background: #cdd9ff; opacity: 0.4;
-    animation: twinkle var(--d, 4s) ease-in-out infinite;
+    background: #cdd9ff; opacity: 0.3;
+    animation: dotFloat var(--d, 6s) ease-in-out infinite;
   }
-  .star.s2 { width: 3px; height: 3px; background: #9db4ff; box-shadow: 0 0 6px rgba(157, 180, 255, 0.8); }
-  @keyframes twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.85; } }
-  /* ---------- 网格 + 扫描线 ---------- */
-  .grid {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background-image:
-      linear-gradient(rgba(77, 107, 254, 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(77, 107, 254, 0.055) 1px, transparent 1px);
-    background-size: 44px 44px;
-    -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, #000 25%, transparent 72%);
-            mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, #000 25%, transparent 72%);
-    animation: gridmove 26s linear infinite;
+  .dot.d2 { width: 3px; height: 3px; background: #9db4ff; box-shadow: 0 0 8px rgba(157,180,255,0.6); }
+  @keyframes dotFloat { 0%,100% { opacity:0.1; transform:translateY(0); } 50% { opacity:0.7; transform:translateY(-12px); } }
+  /* ---------- 微网格（静态，增质感） ---------- */
+  .mesh {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.06;
+    background-image: linear-gradient(rgba(77,107,254,0.3) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(77,107,254,0.3) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 20%, transparent 70%);
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 20%, transparent 70%);
   }
-  @keyframes gridmove { from { background-position: 0 0, 0 0; } to { background-position: 0 44px, 44px 0; } }
-  /* 胶片噪点（静态，增厚质感） */
-  .noise {
-    position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.05;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
-  }
-  /* 自定义启动页背景层 */
+  /* ---------- 自定义背景层 ---------- */
   .splashbg {
     position: fixed; inset: 0; z-index: 0; display: none;
     background-size: cover; background-position: center;
-    filter: brightness(0.36) saturate(0.9);
+    filter: brightness(0.32) saturate(0.85) blur(0.5px);
   }
   body.has-splash-bg .splashbg { display: block; }
-  body.has-splash-bg .aurora, body.has-splash-bg .grid { opacity: 0.28; }
+  body.has-splash-bg .orb, body.has-splash-bg .mesh { opacity: 0.2; }
   /* ---------- 顶部拖拽条 ---------- */
   .topbar {
     position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 10;
@@ -92,198 +86,118 @@
     transition: background 0.15s ease, color 0.15s ease;
   }
   .closebtn:hover { background: rgba(255, 92, 122, 0.18); color: #ffb3c2; }
-  /* ---------- 玻璃卡片：流光描边 + 内高光 ---------- */
+  .closebtn:active { transform: scale(0.92); }
+  /* ---------- 玻璃卡片：motionsites shimmer + uiverse 玻璃 ---------- */
   .card {
     position: relative; z-index: 3;
     display: flex; flex-direction: column; align-items: center; gap: 13px;
     text-align: center;
-    max-width: 560px; width: calc(100% - 80px); max-height: calc(100vh - 96px);
+    max-width: 540px; width: calc(100% - 72px); max-height: calc(100vh - 88px);
     overflow-y: auto; overflow-x: hidden; min-width: 0;
-    scrollbar-width: none; -ms-overflow-style: none; /* 隐藏滚动条：可滚动但不显示拉条 */
-    padding: 40px 48px 36px;
-    border-radius: 26px;
-    background: linear-gradient(160deg, rgba(20, 28, 52, 0.5), rgba(9, 13, 28, 0.58));
-    -webkit-backdrop-filter: blur(22px) saturate(1.35);
-            backdrop-filter: blur(22px) saturate(1.35);
-    box-shadow:
-      0 30px 80px rgba(2, 5, 16, 0.6),
-      0 2px 18px rgba(77, 107, 254, 0.1),
-      inset 0 1px 0 rgba(200, 215, 255, 0.12);
-    animation: cardIn 0.9s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+    scrollbar-width: none; -ms-overflow-style: none;
+    padding: 38px 44px 34px;
+    border-radius: 24px;
+    background: linear-gradient(160deg, rgba(18,26,50,0.6), rgba(8,12,26,0.65));
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 40px 100px rgba(2,5,14,0.7), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    animation: cardSpring 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+    overflow: hidden;
   }
-  /* 玻璃边缘缓慢流转的极光描边（8s 一圈，极低透明度，安静高级） */
+  /* shimmer 高光扫过（motionsites） */
+  .card::after {
+    content:""; position:absolute; top:0; left:-100%; width:60%; height:100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transform: skewX(-20deg);
+    animation: cardShimmer 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes cardShimmer { 0%,100% { left:-100%; } 50% { left:140%; } }
+  @keyframes cardSpring {
+    from { opacity:0; transform: translateY(30px) scale(0.94); }
+    to { opacity:1; transform: translateY(0) scale(1); }
+  }
+  /* 极细渐变描边（aceternity 风格） */
   .card::before {
-    content: ""; position: absolute; inset: -1px; border-radius: 27px; padding: 1px;
-    background: conic-gradient(from var(--edge-a, 0deg),
-      rgba(140, 165, 255, 0) 0deg, rgba(120, 150, 255, 0.5) 40deg, rgba(0, 229, 255, 0.4) 90deg,
-      rgba(140, 165, 255, 0) 150deg, rgba(140, 165, 255, 0) 240deg,
-      rgba(124, 58, 237, 0.35) 300deg, rgba(140, 165, 255, 0) 360deg);
+    content:""; position:absolute; inset:0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(160deg, rgba(120,150,255,0.4), rgba(0,229,255,0.2), rgba(120,150,255,0.1));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
     pointer-events: none;
-    opacity: 0.75;
-    animation: edgeSpin 9s linear infinite;
   }
-  @property --edge-a { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-  @keyframes edgeSpin { to { --edge-a: 360deg; } }
-  .card::-webkit-scrollbar { display: none; width: 0; height: 0; }
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(26px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  /* ---------- Logo：呼吸光晕 + 卫星光点 ---------- */
-  .logo-wrap { position: relative; width: 138px; height: 138px; margin-bottom: 2px; }
+  .card::-webkit-scrollbar { display:none; width:0; height:0; }
+  /* ---------- Logo ---------- */
+  .logo-wrap { position:relative; width:120px; height:120px; margin-bottom:4px; }
   .halo {
-    position: absolute; inset: -26px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(77, 107, 254, 0.34) 0%, rgba(0, 229, 255, 0.1) 42%, transparent 68%);
-    filter: blur(6px);
-    animation: breathe 4.6s ease-in-out infinite;
+    position:absolute; inset:-22px; border-radius:50%;
+    background: radial-gradient(circle, rgba(77,107,254,0.3) 0%, rgba(0,229,255,0.08) 45%, transparent 70%);
+    animation: haloPulse 4s ease-in-out infinite;
   }
-  @keyframes breathe {
-    0%, 100% { opacity: 0.45; transform: scale(0.96); }
-    50% { opacity: 0.95; transform: scale(1.06); }
+  @keyframes haloPulse {
+    0%,100% { opacity:0.4; transform:scale(0.95); }
+    50% { opacity:0.9; transform:scale(1.08); }
   }
-  .sat {
-    position: absolute; inset: -14px; border-radius: 50%;
-    animation: satOrbit 7s linear infinite;
+  .logo-wrap img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; }
+  /* ---------- 欢迎语 ---------- */
+  .welcome { font-size:15px; font-weight:650; color:#d7e2ff; max-width:420px; line-height:1.6; }
+  .welcome strong { background:linear-gradient(90deg, #4d6bfe, #00e5ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .welcome .tag { display:inline-block; font-size:10px; padding:1px 8px; border-radius:999px; border:1px solid rgba(52,211,153,0.4); color:#34d399; margin:0 3px; vertical-align:1px; }
+  /* ---------- 状态指示器 ---------- */
+  .checks { display:flex; flex-direction:column; gap:8px; width:100%; max-width:360px; margin-top:4px; }
+  .ck { display:flex; align-items:center; gap:10px; padding:8px 14px; border-radius:10px;
+        background:rgba(120,140,200,0.06); border:1px solid rgba(120,140,200,0.12);
+        transition: var(--dsh-transition,0.18s ease); }
+  .ck .ico { font-size:13px; width:18px; text-align:center; flex:0 0 auto; }
+  .ck .label { font-size:12px; font-weight:600; color:#9db2d8; flex:0 0 auto; }
+  .ck .val { font-size:11.5px; color:#7b8bb8; margin-left:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ck.busy .ico { animation:spin 1.2s linear infinite; }
+  .ck.ok .ico { color:#34d399; }
+  .ck.warn .ico { color:#eab308; }
+  .ck.no .ico { color:#ff8fa3; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* ---------- 按钮 ---------- */
+  .btns { display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center; }
+  .btn {
+    padding:9px 26px; border-radius:12px; font-size:13px; font-weight:600; cursor:pointer;
+    border:none; transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+    font-family:inherit;
   }
-  .sat i {
-    position: absolute; left: 50%; top: -3px; margin-left: -3px;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #9fd8ff;
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.95), 0 0 22px rgba(0, 229, 255, 0.5);
+  .btn.primary {
+    background: linear-gradient(135deg, #4d6bfe, #00a3c8);
+    color:#fff; box-shadow:0 4px 16px rgba(77,107,254,0.35);
   }
-  @keyframes satOrbit { to { transform: rotate(360deg); } }
-  .logo {
-    position: relative; width: 100%; height: 100%; object-fit: contain; cursor: default;
-    filter: drop-shadow(0 0 22px rgba(77, 107, 254, 0.5));
-    animation: float 5.2s ease-in-out infinite;
-    border-radius: 30px;
+  .btn.primary:hover { filter:brightness(1.15); box-shadow:0 6px 22px rgba(77,107,254,0.5); transform:translateY(-1px); }
+  .btn.primary:active { transform:scale(0.97); }
+  .btn.primary:disabled { opacity:0.4; cursor:default; transform:none; filter:none; box-shadow:none; }
+  .btn.ghost {
+    background:transparent; border:1px solid rgba(120,140,200,0.35); color:#9db2d8;
   }
-  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-  .title {
-    font-size: 29px; font-weight: 650; letter-spacing: 2.5px;
-    background: linear-gradient(90deg, #aebdf2, #5d7bff 32%, #00e5ff 68%, #aebdf2);
-    background-size: 200% 100%;
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shine 5s linear infinite;
+  .btn.ghost:hover { border-color:rgba(120,160,240,0.6); color:#d7e2ff; background:rgba(77,107,254,0.08); }
+  .btn.ghost:active { transform:scale(0.97); }
+  .btn.small { padding:6px 16px; border-radius:10px; font-size:12px; }
+  /* ---------- 倒计时 ---------- */
+  .cd {
+    display:flex; align-items:center; gap:10px; margin-top:8px;
+    font-size:13px; color:#7b8bb8;
   }
-  @keyframes shine { from { background-position: 0% 0; } to { background-position: 200% 0; } }
-  .sub { font-size: 12px; letter-spacing: 7px; color: #5a6c9e; text-transform: uppercase; margin-top: -6px; }
-  .divider {
-    width: 120px; height: 1px; margin: 2px 0;
-    background: linear-gradient(90deg, transparent, rgba(120, 150, 255, 0.45), transparent);
+  .cd-bar {
+    width:120px; height:4px; border-radius:2px; background:rgba(120,140,200,0.15); overflow:hidden;
   }
-  .welcome { font-size: 13.5px; color: #aebdf0; letter-spacing: 1px; max-width: 440px; display: none; line-height: 1.6; }
-  .welcome.show { display: block; }
-  /* ---------- 状态打字机 ---------- */
-  .status {
-    margin-top: 10px; font-size: 14px; color: #9fb4e8; min-height: 20px;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    max-width: 100%; min-width: 0; flex-wrap: wrap; text-align: center;
-  }
-  .status .text { white-space: normal; overflow-wrap: break-word; min-width: 0; }
-  .status .caret { flex: 0 0 auto; }
-  .status .caret {
-    display: inline-block; width: 2px; height: 15px; background: #4d6bfe;
-    box-shadow: 0 0 6px rgba(77, 107, 254, 0.55);
-    animation: blinkcaret 0.9s step-end infinite;
-  }
-  @keyframes blinkcaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-  /* ---------- 检查清单 ---------- */
-  .checks { display: flex; flex-direction: column; gap: 7px; align-items: stretch; margin-top: 6px; width: 100%; max-width: 400px; }
-  .check-row {
-    display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: #8fa2d4;
-    border: 1px solid rgba(120, 140, 200, 0.14); border-radius: 11px;
-    background: rgba(14, 20, 40, 0.4); padding: 8px 13px;
-  }
-  .check-ico {
-    width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 10.5px; flex: none; border: 1px solid rgba(143, 162, 212, 0.35); color: #8fa2d4;
-    transition: all 0.2s ease;
-  }
-  .check-row.ok .check-ico { border-color: rgba(64, 224, 160, 0.6); color: #40e0a0; box-shadow: 0 0 8px rgba(64, 224, 160, 0.35); }
-  .check-row.warn .check-ico { border-color: rgba(255, 196, 90, 0.6); color: #ffc45a; }
-  .check-row.err .check-ico { border-color: rgba(255, 110, 140, 0.7); color: #ff6e8c; }
-  .check-row.busy .check-ico { border-color: rgba(77, 107, 254, 0.7); color: #4d6bfe; animation: spin 1s linear infinite; }
-  .check-row.busy {
-    border-color: rgba(77, 107, 254, 0.3);
-    background: linear-gradient(100deg, rgba(14, 20, 40, 0.4) 30%, rgba(34, 44, 88, 0.5) 50%, rgba(14, 20, 40, 0.4) 70%);
-    background-size: 220% 100%;
-    animation: rowflow 2.6s linear infinite;
-  }
-  @keyframes rowflow { from { background-position: 120% 0; } to { background-position: -120% 0; } }
-  /* ---------- 倒计时（环形进度） ---------- */
-  .countdown { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: 10px; }
-  .countdown[hidden] { display: none; }
-  .cd-ring { position: relative; width: 76px; height: 76px; }
-  .cd-ring svg { transform: rotate(-90deg); }
-  .cd-bg { fill: none; stroke: rgba(120, 140, 200, 0.16); stroke-width: 3.5; }
-  .cd-fg {
-    fill: none; stroke: url(#cdgrad); stroke-width: 3.5; stroke-linecap: round;
-    stroke-dasharray: 204.2; stroke-dashoffset: 0;
-    animation: cdrun 3s linear forwards;
-  }
-  @keyframes cdrun { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 204.2; } }
-  .cd-num {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 700; color: #dbe4ff; font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 16px rgba(77, 107, 254, 0.7);
-  }
-  .cd-sub { font-size: 12px; color: #5a6c9e; margin-top: -6px; letter-spacing: 2.5px; }
-  .cd-btn {
-    border: 1px solid rgba(77, 107, 254, 0.55);
-    background: linear-gradient(90deg, rgba(77, 107, 254, 0.22), rgba(0, 229, 255, 0.14));
-    color: #c6d4ff; font-size: 13px; padding: 8px 26px; border-radius: 999px; cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .cd-btn:hover { background: linear-gradient(90deg, rgba(77, 107, 254, 0.4), rgba(0, 229, 255, 0.26)); box-shadow: 0 0 18px rgba(77, 107, 254, 0.5); }
-  .cd-skip { font-size: 12px; color: #66769f; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  .cd-skip input { accent-color: #4d6bfe; cursor: pointer; }
-  /* ---------- 首次使用引导 ---------- */
-  .guide { text-align: left; margin-top: 12px; width: 100%; max-width: 460px; }
-  .guide[hidden] { display: none; }
-  .guide-box {
-    border: 1px solid rgba(77, 107, 254, 0.26); border-radius: 16px;
-    background: rgba(11, 16, 32, 0.6); padding: 18px 20px;
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  }
-  .guide-title { font-size: 14px; color: #d3ddff; margin-bottom: 11px; letter-spacing: 1px; }
-  .guide-step { display: flex; gap: 9px; font-size: 12.5px; color: #9fb4e8; line-height: 1.65; margin-bottom: 7px; }
-  .guide-step b { color: #c9d6ff; font-weight: 600; }
-  .guide-step .n {
-    flex: none; width: 17px; height: 17px; border-radius: 50%; margin-top: 2px;
-    background: rgba(77, 107, 254, 0.2); border: 1px solid rgba(77, 107, 254, 0.5);
-    color: #9db4ff; font-size: 10.5px; display: flex; align-items: center; justify-content: center;
-  }
-  .guide-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
-  .g-btn {
-    font-size: 12.5px; padding: 7px 16px; border-radius: 999px; cursor: pointer;
-    border: 1px solid rgba(143, 162, 212, 0.4); background: transparent; color: #9fb4e8; transition: all 0.2s ease;
-  }
-  .g-btn:hover { background: rgba(143, 162, 212, 0.12); }
-  .g-btn.primary {
-    border-color: rgba(77, 107, 254, 0.7);
-    background: linear-gradient(90deg, rgba(77, 107, 254, 0.35), rgba(0, 229, 255, 0.22));
-    color: #e8eeff; font-weight: 600;
-  }
-  .g-btn.primary:hover { box-shadow: 0 0 16px rgba(77, 107, 254, 0.55); }
-  .hint {
-    position: fixed; bottom: 24px; left: 0; right: 0; z-index: 3;
-    text-align: center; font-size: 12px; color: #45537a; letter-spacing: 1.2px;
-  }
+  .cd-fill { height:100%; background: linear-gradient(90deg, #4d6bfe, #00e5ff); border-radius:2px;
+    transition:width 0.3s linear; }
+  /* ---------- 自定义滚动条 ---------- */
+  .card::-webkit-scrollbar { width:3px; }
+  .card::-webkit-scrollbar-thumb { background:rgba(120,140,200,0.2); border-radius:99px; }
 </style>
 </head>
 <body>
   <div class="splashbg" id="splashbg"></div>
-  <div class="space"></div>
-  <div class="aurora a1"></div>
-  <div class="aurora a2"></div>
-  <div class="aurora a3"></div>
-  <div class="stars" id="stars"></div>
-  <div class="grid"></div>
-  <div class="noise"></div>
+  <div class="bg-grad"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="particles" id="particles"></div>
+  <div class="mesh"></div>
 
   <div class="topbar">
     <span class="brand">DESK HARNESS · DESKTOP</span>
@@ -293,13 +207,34 @@
   <div class="card">
     <div class="logo-wrap">
       <div class="halo"></div>
-      <div class="sat"><i></i></div>
       <img class="logo" id="logo" alt="DeepSeek" src="./build/logo-256.png"
            onerror="this.style.display='none'" />
     </div>
-    <div class="title">DESK HARNESS</div>
-    <div class="sub">Desktop · 桌面版</div>
-    <div class="divider"></div>
+    <div class="welcome" id="welcome">DESK HARNESS · 桌面版</div>
+    <div class="checks" id="checks">
+      <div class="ck busy" id="ck-env">
+        <span class="ico">⋯</span>
+        <span class="label">运行环境</span>
+        <span class="val">检测中…</span>
+      </div>
+      <div class="ck busy" id="ck-svc">
+        <span class="ico">⋯</span>
+        <span class="label">本地服务</span>
+        <span class="val">等待中…</span>
+      </div>
+    </div>
+    <div class="btns" id="btns">
+      <button class="btn primary" id="gstart" disabled>等待就绪…</button>
+      <button class="btn ghost small" id="gkeys" hidden>🔑 设置 API Key</button>
+    </div>
+    <div class="cd" id="cd" hidden>
+      <span class="cd-num" id="cdnum">3</span>
+      <span>秒后自动进入…</span>
+      <div class="cd-bar"><div class="cd-fill" id="cdfill"></div></div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">正在启动 DESK HARNESS…</div>
     <div class="welcome" id="welcome">欢迎使用 DESK HARNESS</div>
     <div class="status"><span class="text" id="statustext">正在初始化…</span><span class="caret"></span></div>
 
@@ -352,43 +287,19 @@
 
 <script>
 (function () {
-  // 环境星点（轻量装饰）
+  // 浮动粒子（轻量装饰）
   (function () {
-    var box = document.getElementById('stars');
-    for (var i = 0; i < 26; i++) {
+    var box = document.getElementById('particles');
+    for (var i = 0; i < 30; i++) {
       var s = document.createElement('div');
-      s.className = 'star' + (i % 3 === 0 ? ' s2' : '');
+      s.className = 'dot' + (i % 4 === 0 ? ' d2' : '');
       s.style.left = (Math.random() * 100).toFixed(2) + '%';
       s.style.top = (Math.random() * 100).toFixed(2) + '%';
-      s.style.setProperty('--d', (3 + Math.random() * 5).toFixed(2) + 's');
+      s.style.setProperty('--d', (4 + Math.random() * 6).toFixed(2) + 's');
       s.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
       box.appendChild(s);
     }
   })();
-
-  var textEl = document.getElementById('statustext');
-  var caret = document.querySelector('.status .caret');
-  var queue = '';
-  var typing = false;
-  var typeTimer = null;
-
-  // 打字机效果
-  function typeNext() {
-    if (queue.length === 0) { typing = false; return; }
-    typing = true;
-    var ch = queue.charAt(0);
-    queue = queue.slice(1);
-    textEl.textContent = textEl.textContent + ch;
-    typeTimer = setTimeout(typeNext, 24);
-  }
-  function show(msg) {
-    if (!msg) return;
-    if (msg === textEl.textContent) return;
-    textEl.textContent = '';
-    queue = msg;
-    if (typeTimer) clearTimeout(typeTimer);
-    typeNext();
-  }
 
   // 检查清单状态
   var ckEnv = document.getElementById('ck-env');
@@ -397,106 +308,48 @@
   var svcState = 'busy';
   function setCheck(which, state, text) {
     var row = which === 'env' ? ckEnv : ckSvc;
-    var textEl = which === 'env'
-      ? document.getElementById('ck-env-text')
-      : document.getElementById('ck-svc-text');
-    row.className = 'check-row ' + state;
-    var ico = which === 'env'
-      ? document.getElementById('ck-env-ico')
-      : document.getElementById('ck-svc-ico');
-    if (state === 'ok') ico.textContent = '✓';
-    else if (state === 'warn') ico.textContent = '!';
-    else if (state === 'err') ico.textContent = '✕';
-    else ico.textContent = '⋯';
-    if (text) textEl.textContent = text;
+    var ico = row.querySelector('.ico');
+    var val = row.querySelector('.val');
+    row.className = 'ck ' + state;
+    if (state === 'busy') { ico.textContent = '\u22EF'; }
+    else if (state === 'ok') { ico.textContent = '\u2713'; }
+    else if (state === 'warn') { ico.textContent = '\u26A0'; }
+    else { ico.textContent = '\u2717'; }
+    if (text) val.textContent = text;
     if (which === 'env') envState = state;
     else svcState = state;
     maybeEnter();
   }
 
-  if (window.desktop && window.desktop.onStatus) {
-    window.desktop.onStatus(function (s) {
-      var stage = (s && s.stage) || '';
-      if (stage === 'fatal') {
-        show('启动失败，请查看弹窗提示');
-        setCheck('svc', 'err', '本地服务 启动失败');
-        return;
-      }
-      show((s && s.sub) || '');
-      if (stage === 'check') setCheck('env', 'busy', '正在检测运行环境…');
-      else if (stage === 'check-ok') setCheck('env', 'ok', (s && s.sub) || 'Node.js 已就绪');
-      else if (stage === 'check-warn') setCheck('env', 'warn', (s && s.sub) || '未检测到 Node.js');
-      else if (stage === 'detect') setCheck('svc', 'busy', '正在检测本地服务…');
-      else if (stage === 'starting') setCheck('svc', 'busy', '正在启动本地服务…');
-      else if (stage === 'loading') setCheck('svc', 'ok', (s && s.sub) || '本地服务已就绪');
-    });
-  }
-
-  // 关闭按钮
-  document.getElementById('closebtn').addEventListener('click', function () {
-    if (window.desktop && window.desktop.winAction) window.desktop.winAction('close');
-    else window.close();
-  });
-
-  // ---------------------------------------------------------------- 启动页流程：引导 → 倒计时 → 进入
-  var welcomeEl = document.getElementById('welcome');
-  var cdWrap = document.getElementById('cdwrap');
-  var cdNum = document.getElementById('cdnum');
-  var guideEl = document.getElementById('guide');
   var entered = false;
-  var enterTimer = null;
-
   function enter() {
     if (entered) return;
     entered = true;
     if (window.desktop && window.desktop.splashEnter) window.desktop.splashEnter();
-    else if (window.close) window.close();
-  }
-  function autoEnter(ms) {
-    if (enterTimer) clearTimeout(enterTimer);
-    enterTimer = setTimeout(enter, ms);
-  }
-  function startCountdown() {
-    if (countdownStarted) return;
-    countdownStarted = true;
-    cdWrap.hidden = false;
-    guideEl.hidden = true;
-    var n = 3;
-    cdNum.textContent = String(n);
-    var iv = setInterval(function () {
-      n -= 1;
-      if (n <= 0) { clearInterval(iv); enter(); }
-      else cdNum.textContent = String(n);
-    }, 1000);
-    document.getElementById('cdbtn').addEventListener('click', function () { clearInterval(iv); enter(); });
-    document.getElementById('cdskip').addEventListener('change', function (e) {
-      if (e.target.checked && window.desktop && window.desktop.splashSet) {
-        window.desktop.splashSet({ skipCountdown: true });
-      }
-    });
-  }
-  function showGuide() {
-    guideEl.hidden = false;
-    cdWrap.hidden = true;
-    // 门控：环境与服务就绪前「开始使用」保持禁用（由 maybeEnter 启用）
-    var gs = document.getElementById('gstart');
-    gs.disabled = true;
-    gs.title = '等待运行环境与服务就绪…';
-    gs.textContent = '等待就绪…';
-    gs.addEventListener('click', function () {
-      if (window.desktop && window.desktop.splashSet) window.desktop.splashSet({ enter: true, onboarded: true });
-      else enter();
-    });
-    document.getElementById('gkeys').addEventListener('click', function () {
-      if (window.desktop && window.desktop.openExternal) {
-        window.desktop.openExternal('https://platform.deepseek.com/api_keys');
-      }
-    });
   }
 
-  // 进入门控：运行环境（ok/warn）+ 服务就绪（ok）两项满足后，
-  // 才出现倒计时/进入按钮；不满足时绝不放行（无任何超时强进兜底）
-  var enterMode = null;        // 'guide' | 'countdown' | 'immediate'
+  var welcomeEl = document.getElementById('welcome');
+  welcomeEl.style.display = 'none';
+
+  var cdWrap = document.getElementById('cd');
+  var cdNum = document.getElementById('cdnum');
+  var cdFill = document.getElementById('cdfill');
+
+  var gs = document.getElementById('gstart');
+  gs.disabled = true;
+  gs.title = '等待运行环境与服务就绪…';
+  gs.textContent = '等待就绪…';
+  gs.addEventListener('click', function () {
+    if (window.desktop && window.desktop.splashSet) window.desktop.splashSet({ enter: true, onboarded: true });
+    else enter();
+  });
+  document.getElementById('gkeys').addEventListener('click', function () {
+    if (window.desktop && window.desktop.openExternal) {
+      window.desktop.openExternal('https://platform.deepseek.com/api_keys');
+    }
+  });
+
+  var enterMode = null;
   var countdownStarted = false;
   function readyToEnter() {
     return (envState === 'ok' || envState === 'warn') && svcState === 'ok';
@@ -504,7 +357,6 @@
   function maybeEnter() {
     if (entered) return;
     if (enterMode === 'guide') {
-      var gs = document.getElementById('gstart');
       if (gs && readyToEnter()) {
         gs.disabled = false;
         gs.title = '';
@@ -520,13 +372,27 @@
     }
   }
 
+  function startCountdown() {
+    countdownStarted = true;
+    cdWrap.hidden = false;
+    var n = 3;
+    cdNum.textContent = String(n);
+    cdFill.style.width = '0%';
+    var t = setInterval(function () {
+      n--;
+      if (n <= 0) { clearInterval(t); enter(); return; }
+      cdNum.textContent = String(n);
+      cdFill.style.width = ((3 - n) / 3 * 100) + '%';
+    }, 1000);
+  }
+
   var cfgTimer = null;
   function applySplashCfg(c) {
     c = c || {};
     if (cfgTimer) clearTimeout(cfgTimer);
     if (c.message) {
       welcomeEl.textContent = c.message;
-      welcomeEl.classList.add('show');
+      welcomeEl.style.display = 'block';
     }
     if (c.bg) {
       document.body.classList.add('has-splash-bg');
@@ -538,33 +404,28 @@
     }
     if (!c.onboarded) {
       enterMode = 'guide';
-      showGuide();
-      maybeEnter(); // 环境就绪后启用「开始使用」按钮
+      maybeEnter();
     } else if (c.countdown) {
       enterMode = 'countdown';
-      maybeEnter(); // 就绪才开始倒计时（无超时强进兜底：不满足条件永远不放行）
+      maybeEnter();
     } else {
       enterMode = 'immediate';
-      maybeEnter(); // 就绪即进，不抢跑
+      maybeEnter();
     }
   }
   if (window.desktop && window.desktop.onSplashCfg) {
     window.desktop.onSplashCfg(applySplashCfg);
-    // 配置未到时保持启动页（主进程在失败时会弹窗并退出，不会永久卡死）
   } else {
-    // 非桌面环境（浏览器直接打开）：直接按倒计时放行
     startCountdown();
   }
 
-  // 跨环境健壮加载 logo：优先使用主进程提供的内嵌 data URI（不依赖文件路径）
   (function () {
     var logo = document.getElementById('logo');
     function applyUri(u) { if (u && logo) logo.src = u; }
     if (window.desktop && window.desktop.getLogo) {
-      try { window.desktop.getLogo().then(applyUri); } catch (e) { /* 保留相对路径 */ }
+      try { window.desktop.getLogo().then(applyUri); } catch (e) { /* ignore */ }
     }
     logo.addEventListener('error', function () {
-      // 相对路径失败时的最后一次兜底：隐藏占位，避免破损图标
       logo.style.display = 'none';
     });
   })();
