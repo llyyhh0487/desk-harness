@@ -1644,22 +1644,35 @@
       cardHtml += '<div class="dsh-tc-sec">\u5168\u5C40\u7D2F\u8BA1\uFF08\u6240\u6709\u4F1A\u8BDD\uFF09</div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u5165\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6 + \u7F13\u5B58\u5199\u5165') + '</span><span class="dsh-tc-v">' + fmt(tot.in + tot.cacheR + tot.cacheW) + '</span></div>';
       cardHtml += '<div class="dsh-tc-kv"><span class="dsh-tc-k">\u8F93\u51FA\u5408\u8BA1' + helpTip('\u6240\u6709\u4F1A\u8BDD\u7684\u6A21\u578B\u751F\u6210 token \u603B\u548C') + '</span><span class="dsh-tc-v">' + fmt(tot.out) + '</span></div>';
-      // 会话明细：按 title 合并相同标题的会话（fork/subagent 会产生多个同标题会话），
-      // 排除当前会话（已在上面单独展示），按最近更新时间排序取前 5 组
+      // 会话明细：按父对话归组——subagent/fork 产生的子会话（origin=subagent，parentSessionId
+      // 指向同一父对话）合并进所属对话，只显示对话级记录，不逐条列出子任务
+      var byId = {};
+      items.forEach(function (s) { if (s && s.sessionId) byId[s.sessionId] = s; });
+      function rootIdOf(sid) {
+        var cur = byId[sid];
+        var guard = 0;
+        while (cur && cur.parentSessionId && byId[cur.parentSessionId] && guard < 20) {
+          cur = byId[cur.parentSessionId];
+          guard++;
+        }
+        return cur ? cur.sessionId : sid;
+      }
       var actId = act ? act.sessionId : null;
-      var groups = {};   // key -> { title, count, in, out, cache, turns, steps, llmMs, updatedAt, running }
+      var actRoot = actId ? rootIdOf(actId) : null;
+      var groups = {}; // rootId -> { title, in, out, cache, turns, steps, llmMs, updatedAt, running, subCount }
       items.forEach(function (s) {
         if (!s || !s.sessionId) return;
-        if (actId && s.sessionId === actId) return; // 当前会话已在上面展示
+        var rid = rootIdOf(s.sessionId);
+        if (actRoot && rid === actRoot) return; // 当前会话所属对话已在上面单独展示
         var u = s.projections && s.projections.values && s.projections.values.tokenUsage;
         var st = s.projections && s.projections.values && s.projections.values.sessionStats;
-        var t = (s.projections && s.projections.values && s.projections.values.title) || '';
-        var key = t || ('__id__' + s.sessionId); // 无标题会话各自独立，不合并
-        if (!groups[key]) {
-          groups[key] = { title: t, count: 0, in: 0, out: 0, cache: 0, turns: 0, steps: 0, llmMs: 0, updatedAt: 0, running: false };
+        var root = byId[rid];
+        var t = (root && root.projections && root.projections.values && root.projections.values.title) || '';
+        if (!groups[rid]) {
+          groups[rid] = { title: t, in: 0, out: 0, cache: 0, turns: 0, steps: 0, llmMs: 0, updatedAt: 0, running: false, subCount: 0 };
         }
-        var g = groups[key];
-        g.count++;
+        var g = groups[rid];
+        if (rid !== s.sessionId) g.subCount++; // 统计子任务数
         if (u) {
           g.in += u.uncachedInputTokens || 0;
           g.out += u.outputTokens || 0;
@@ -1679,7 +1692,7 @@
       merged = merged.slice(0, 5);
       merged.forEach(function (g) {
         var name = g.title || '\uFF08\u65E0\u6807\u9898\uFF09';
-        if (g.count > 1) name += ' \u00D7' + g.count;
+        if (g.subCount > 0) name += ' \u00B7 ' + g.subCount + ' \u5B50\u4EFB\u52A1';
         cardHtml += '<div class="dsh-tc-row' + (g.running ? ' dsh-tc-running' : '') + '">'
           + '<span class="dsh-tc-name">' + escapeHtml(name) + '</span>'
           + '<span class="dsh-tc-nums">\u5165 ' + fmt(g.in) + ' · \u51FA ' + fmt(g.out) + (g.cache ? ' · \u7F13\u5B58 ' + fmt(g.cache) : '') + '</span>'
@@ -1687,7 +1700,7 @@
           + '</div>';
       });
       if (totalMerged > 5) {
-        cardHtml += '<div class="dsh-tc-more">\u2026\u8FD8\u6709 ' + (totalMerged - 5) + ' \u7EC4\u4F1A\u8BDD\uFF08\u5DF2\u6298\u53E0\uFF09</div>';
+        cardHtml += '<div class="dsh-tc-more">\u2026\u8FD8\u6709 ' + (totalMerged - 5) + ' \u4E2A\u5BF9\u8BDD\uFF08\u5DF2\u6298\u53E0\uFF09</div>';
       }
       if (tokenCard.__dshSig !== cardHtml) {
         tokenCard.innerHTML = cardHtml;
