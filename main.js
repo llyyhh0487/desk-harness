@@ -3130,9 +3130,11 @@ async function uninstallPluginCore(names) {
     // 手动安装输入 GitHub 仓库名时，依赖 KEY 是包名（如 @dsh-external/dsh-file-attachments），
     // 但 UI 传的是仓库名（xzyonline/dsh-chat-files）——必须两边都匹配才能卸掉
     const matchName = (key, spec) => names.some((n) => {
-      const base = n.split('/')[1] || n;
+      // npm/@scope/pkg → 剥掉 npm/ 前缀，取最后一段匹配；owner/repo 同理
+      const clean = n.replace(/^npm\//, '');
+      const base = clean.split('/').pop() || clean;
       const s = String(spec || '');
-      return key === n || key === base || String(key).endsWith('/' + base)
+      return key === clean || key === base || String(key).endsWith('/' + base)
         || s === 'github:' + n || s === 'git+https://github.com/' + n + '.git'
         || s.includes('/' + n) || s.endsWith('/' + base);
     });
