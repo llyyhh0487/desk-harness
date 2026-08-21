@@ -4385,7 +4385,20 @@ ipcMain.on('win:action', async (_e, a) => {
   else if (cmd === 'maximize') { if (mainWin.isMaximized()) mainWin.unmaximize(); else mainWin.maximize(); }
   else if (cmd === 'close') mainWin.close();
   else if (cmd === 'devtools') mainWin.webContents.toggleDevTools();
-  else if (cmd === 'restart-service') restartServiceHard();
+  else if (cmd === 'restart-service') {
+    // 引导重启：先向用户确认，再执行。重启会短暂中断本地服务（正在进行的会话/任务会被打断）。
+    const r = dialog.showMessageBoxSync(mainWin, {
+      type: 'question',
+      title: '重启本地服务并重载',
+      message: '确定要重启本地 DSH 服务吗？',
+      detail: '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n注意：正在进行的会话、后台任务和审批操作会被中断，请确认当前没有未保存的重要工作。\n\n若你只是改了插件代码/配置，重启后即可生效。',
+      buttons: ['取消', '重启并重载'],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+    });
+    if (r === 1) restartServiceHard();
+  }
   else if (cmd === 'restart-app') restartApp();
   else if (cmd === 'open-usage') shell.openExternal('https://platform.deepseek.com/usage');
   else if (cmd === 'port') promptPort();
