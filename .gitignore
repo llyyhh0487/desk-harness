@@ -8,3 +8,8 @@ Thumbs.db
 build/tools/node_modules/
 deepseekharness-desktop/
 tu-v18/
+# 调试/测试残留
+scripts/_*.txt
+scripts/*-test-*.txt
+test-output/
+coverage/

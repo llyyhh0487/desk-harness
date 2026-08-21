@@ -25,6 +25,7 @@
   ],
   "scripts": {
     "start": "electron .",
+    "test": "node --test test/pure.test.js",
     "pack": "electron-builder --win nsis",
     "pack:dir": "electron-builder --dir"
   },
@@ -35,6 +36,13 @@
       "output": "dist",
       "buildResources": "build"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "llyyhh0487",
+        "repo": "desk-harness"
+      }
+    ],
     "asar": true,
     "compression": "normal",
     "files": [
@@ -42,6 +50,7 @@
       "preload.js",
       "fx.js",
       "fx.css",
+      "lib/**",
       "dock.html",
       "dock.js",
       "term-helper.js",
@@ -93,6 +102,7 @@
     "electron-builder": "26.15.3"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "xterm": "5.3.0"
   }
 }

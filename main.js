@@ -9,6 +9,8 @@ const fs = require('fs');
 const os = require('os');
 const http = require('http');
 const { spawn, spawnSync, execFile } = require('child_process');
+const { nodeVerOk, sanitizeShellArg, htmlDecode, parseStarsText } = require('./lib/pure');
+const { autoUpdater } = require('electron-updater');
 
 // dshbg:// 本地媒体协议：壁纸图片/视频不再 base64 内嵌（大幅加快启动与配置推送）
 protocol.registerSchemesAsPrivileged([
@@ -488,20 +490,11 @@ function serviceEnv() {
   } catch (e) { /* ignore */ }
   return env;
 }
-function nodeVerOk(v) {
-  const m = String(v || '').match(/^v?(\d+)\.(\d+)/);
-  if (!m) return false;
-  const maj = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
-  return maj > 22 || (maj === 22 && min >= 19);
-}
+// nodeVerOk / sanitizeShellArg / htmlDecode / parseStarsText 已提取到 ./lib/pure
 // 统一走 cmd /d /s /c：兼容 .exe/.cmd/裸命令（pnpm/node 是 PATH 上的 shim）
 // 输出按 UTF-8 → GBK 双解码：pnpm/npm 中文输出不再乱码（与终端面板同方案）
 // 安全：cmd 中 `\"` 不是转义符——引号直接剔除（Windows 合法路径/包名本就不含 "），
 // 并剔除命令分隔元字符，杜绝拼接注入
-function sanitizeShellArg(s) {
-  return String(s).replace(/["&|<>^%!]/g, '');
-}
 function runCmd(cmd, args, opts) {
   return new Promise((resolve) => {
     const q = (s) => '"' + sanitizeShellArg(s) + '"';
@@ -1279,22 +1272,7 @@ const MIRROR_PREFIX = {
   ghproxynet: 'https://ghproxy.net/https://github.com/',
 };
 
-function htmlDecode(s) {
-  return String(s)
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-}
-
-function parseStarsText(text) {
-  const t = String(text).replace(/,/g, '').trim();
-  const m = t.match(/^([\d.]+)([kK])?$/);
-  if (!m) return { stars: 0, starsText: '0' };
-  let n = parseFloat(m[1]);
-  if (m[2]) n = Math.round(n * 1000);
-  const starsText = n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n);
-  return { stars: Math.round(n), starsText };
-}
+// htmlDecode / parseStarsText 已提取到 ./lib/pure
 
 async function fetchStorePage(page) {
   const url = `https://github.com/topics/dsh-plugin?page=${Math.max(1, page || 1)}`;
@@ -3757,6 +3735,91 @@ function showServiceKillFailedDialog(port, err) {
   if (r === 0) shell.openPath(serverLogPath);
 }
 
+// 脱敏：API Key / Token 只保留前 4 位 + 掩码，其余替换为 ***
+function redactSecret(v) {
+  const s = String(v ?? '');
+  if (s.length <= 8) return '***';
+  return s.slice(0, 4) + '***' + s.slice(-4);
+}
+
+// 一键导出诊断包：把四份日志 + config(脱敏) + credentials(脱敏) + 环境快照
+// 汇总成一个 .txt，用户自行选择保存位置。方便反馈问题，不泄露密钥。
+function exportDiagnostics() {
+  const sections = [];
+  const heading = (title) => sections.push('='.repeat(70) + '\n' + title + '\n' + '='.repeat(70));
+  const fileSection = (title, filePath) => {
+    heading(title + '  (' + filePath + ')');
+    try {
+      if (!fs.existsSync(filePath)) { sections.push('[文件不存在]\n'); return; }
+      const raw = fs.readFileSync(filePath, 'utf8');
+      sections.push(raw.length > 200000 ? raw.slice(0, 200000) + '\n...[截断]\n' : raw);
+    } catch (e) { sections.push('[读取失败] ' + e.message + '\n'); }
+  };
+  const kvSection = (title, obj) => {
+    heading(title);
+    sections.push(Object.entries(obj).map(([k, v]) => k + ': ' + (v === undefined || v === null ? '' : v)).join('\n') + '\n');
+  };
+
+  heading('DESK HARNESS 诊断报告');
+  sections.push('生成时间: ' + new Date().toISOString() + '\n');
+
+  kvSection('环境快照', {
+    'app版本': require('./package.json').version,
+    'electron': process.versions.electron,
+    'node': process.versions.node,
+    'platform': process.platform + ' ' + process.arch,
+    'DSH_HOME': process.env.DSH_HOME || path.join(os.homedir(), '.dsh'),
+    'userDataDir': userDataDir,
+    '端口': cliPort || cfg.port || DEFAULT_PORT,
+  });
+
+  // config.json 脱敏（ghToken 掩码）
+  try {
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (parsed && typeof parsed === 'object' && typeof parsed.ghToken === 'string' && parsed.ghToken) {
+        parsed.ghToken = redactSecret(parsed.ghToken);
+      }
+      heading('config.json（已脱敏）  (' + configPath + ')');
+      sections.push(JSON.stringify(parsed, null, 2) + '\n');
+    }
+  } catch (e) { heading('config.json'); sections.push('[解析失败] ' + e.message + '\n'); }
+
+  // credentials.yaml 脱敏
+  try {
+    const home = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
+    const credPath = path.join(home, '.credentials.yaml');
+    if (fs.existsSync(credPath)) {
+      const txt = fs.readFileSync(credPath, 'utf8');
+      const redacted = txt.replace(/(\w*(?:API_KEY|TOKEN|SECRET|PASSWORD|KEY)\w*\s*[:=]\s*)(\S+)/gi, (_, prefix, val) => prefix + redactSecret(val));
+      heading('.credentials.yaml（已脱敏）  (' + credPath + ')');
+      sections.push(redacted + '\n');
+    }
+  } catch (e) { /* ignore */ }
+
+  fileSection('launch.log', launchLogPath);
+  fileSection('server.log', serverLogPath);
+  fileSection('service-out.log', serviceOutLogPath);
+  fileSection('service-err.log', serviceErrLogPath);
+  try { if (fs.existsSync(setupLogPath())) fileSection('setup.log', setupLogPath()); } catch (e) { /* ignore */ }
+
+  const content = sections.join('\n');
+  dialog.showSaveDialog(mainWin, {
+    title: '导出诊断包',
+    defaultPath: path.join(os.homedir(), 'desk-harness-diagnostics-' + new Date().toISOString().replace(/[:.]/g, '-') + '.txt'),
+    filters: [{ name: '文本文件', extensions: ['txt'] }],
+  }).then((r) => {
+    if (r.canceled || !r.filePath) return;
+    try {
+      fs.writeFileSync(r.filePath, content, 'utf8');
+      dialog.showMessageBoxSync(mainWin, { type: 'info', title: '导出成功', message: '诊断包已导出', detail: r.filePath, buttons: ['知道了'] });
+    } catch (e) {
+      dialog.showErrorBox('导出失败', e.message);
+    }
+  });
+}
+
+
 function sendRestartState(s) {
   if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('restart:state', s);
 }
@@ -3839,6 +3902,80 @@ function reconnect() {
     bootstrap();
   }
 }
+
+// 返回当前正在运行（running）的会话标题列表，用于重启/关闭前的活跃任务警告。
+async function runningSessionTitles() {
+  try {
+    const items = await sessionListFetch();
+    const running = items.filter((s) => s && s.running);
+    return running.map((s) => {
+      const t = s.projections && s.projections.values && s.projections.values.title;
+      return t || (s.sessionId ? s.sessionId.slice(-8) : '');
+    });
+  } catch { return []; }
+}
+
+// ---------------------------------------------------------------------------
+// 自动更新（electron-updater，GitHub Releases 发布渠道）
+// ---------------------------------------------------------------------------
+let updaterReady = false;
+let updaterChecking = false;
+
+// 只在打包版可用（开发模式无 latest.yml 更新源）；首次检查前才初始化，避免每次启动都请求。
+function ensureUpdater() {
+  if (updaterReady) return true;
+  if (!app.isPackaged) return false;
+  autoUpdater.autoDownload = false;        // 先提示，用户确认后再下载
+  autoUpdater.autoInstallOnAppQuit = true; // 下载完成后退出时静默安装
+  autoUpdater.on('error', (e) => log('updater error:', e && (e.stack || e.message || e)));
+  updaterReady = true;
+  return true;
+}
+
+// 检查更新：返回 { ok, current, latest, available }。仅在用户主动触发或启动后延迟触发。
+async function checkForUpdate() {
+  if (!ensureUpdater()) return { ok: false, reason: 'dev' };
+  if (updaterChecking) return { ok: false, reason: 'busy' };
+  updaterChecking = true;
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const info = result && result.updateInfo;
+    const current = autoUpdater.currentVersion && autoUpdater.currentVersion.version;
+    const latest = info && info.version;
+    return {
+      ok: true,
+      current: String(current || require('./package.json').version),
+      latest: String(latest || ''),
+      available: !!(info && latest && latest !== current),
+    };
+  } catch (e) {
+    log('updater check failed:', e && (e.message || e));
+    return { ok: false, reason: String((e && e.message) || e) };
+  } finally {
+    updaterChecking = false;
+  }
+}
+
+// 下载并安装更新（用户确认后调用）。
+function downloadUpdate() {
+  if (!ensureUpdater()) return;
+  autoUpdater.once('update-downloaded', (info) => {
+    const r = dialog.showMessageBoxSync(mainWin, {
+      type: 'info',
+      title: '更新已就绪',
+      message: '新版本已下载完成。',
+      detail: `v${info.version}\n\n重启桌面端即可完成安装。`,
+      buttons: ['立即重启', '稍后'],
+      defaultId: 0, cancelId: 1,
+    });
+    if (r === 0) autoUpdater.quitAndInstall(false, true);
+  });
+  autoUpdater.downloadUpdate().catch((e) => {
+    log('updater download failed:', e && (e.message || e));
+    dialog.showErrorBox('下载更新失败', String((e && e.message) || e));
+  });
+}
+
 
 // ---------------------------------------------------------------------------
 // 系统通知：任务完成（轮询）+ 审批/提问（SSE mux）
@@ -4386,18 +4523,24 @@ ipcMain.on('win:action', async (_e, a) => {
   else if (cmd === 'close') mainWin.close();
   else if (cmd === 'devtools') mainWin.webContents.toggleDevTools();
   else if (cmd === 'restart-service') {
-    // 引导重启：先向用户确认，再执行。重启会短暂中断本地服务（正在进行的会话/任务会被打断）。
-    const r = dialog.showMessageBoxSync(mainWin, {
-      type: 'question',
-      title: '重启本地服务并重载',
-      message: '确定要重启本地 DSH 服务吗？',
-      detail: '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n注意：正在进行的会话、后台任务和审批操作会被中断，请确认当前没有未保存的重要工作。\n\n若你只是改了插件代码/配置，重启后即可生效。',
-      buttons: ['取消', '重启并重载'],
-      defaultId: 0,
-      cancelId: 0,
-      noLink: true,
+    // 引导重启：先查活跃会话，再按风险给确认。重启会中断正在运行的任务。
+    runningSessionTitles().then((running) => {
+      const hasRunning = running.length > 0;
+      const detail = hasRunning
+        ? '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n⚠️ 检测到以下会话正在运行，重启会中断它们：\n' + running.slice(0, 5).map((t) => '  • ' + t).join('\n') + (running.length > 5 ? '\n  …等共 ' + running.length + ' 个会话' : '') + '\n\n若你只是改了插件代码/配置，重启后即可生效。'
+        : '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n当前没有检测到正在运行的会话。\n\n若你只是改了插件代码/配置，重启后即可生效。';
+      const r = dialog.showMessageBoxSync(mainWin, {
+        type: hasRunning ? 'warning' : 'question',
+        title: '重启本地服务并重载',
+        message: hasRunning ? '有正在运行的会话，确定要重启服务吗？' : '确定要重启本地 DSH 服务吗？',
+        detail,
+        buttons: ['取消', '重启并重载'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      });
+      if (r === 1) restartServiceHard();
     });
-    if (r === 1) restartServiceHard();
   }
   else if (cmd === 'restart-app') restartApp();
   else if (cmd === 'open-usage') shell.openExternal('https://platform.deepseek.com/usage');
@@ -4405,6 +4548,31 @@ ipcMain.on('win:action', async (_e, a) => {
   else if (cmd === 'open-config') shell.openPath(userDataDir);
   else if (cmd === 'open-profile-dir') shell.openPath(profileDir());
   else if (cmd === 'open-logs') shell.openPath(serverLogPath);
+  else if (cmd === 'export-diag') exportDiagnostics();
+  else if (cmd === 'check-update') {
+    checkForUpdate().then((r) => {
+      if (r.ok === false && r.reason === 'dev') {
+        dialog.showMessageBoxSync(mainWin, { type: 'info', title: '检查更新', message: '开发模式不支持自动更新', detail: '自动更新仅在打包安装版中可用。开发模式请用 git pull 更新源码。', buttons: ['知道了'] });
+        return;
+      }
+      if (r.ok === false) {
+        dialog.showMessageBoxSync(mainWin, { type: 'warning', title: '检查更新', message: '检查更新失败', detail: r.reason || '未知错误', buttons: ['知道了'] });
+        return;
+      }
+      if (r.available) {
+        const choice = dialog.showMessageBoxSync(mainWin, {
+          type: 'info', title: '发现新版本',
+          message: `新版本 v${r.latest} 可用（当前 v${r.current}）`,
+          detail: '是否立即下载？下载完成后重启桌面端即可完成安装。',
+          buttons: ['立即下载', '稍后'],
+          defaultId: 0, cancelId: 1,
+        });
+        if (choice === 0) downloadUpdate();
+      } else {
+        dialog.showMessageBoxSync(mainWin, { type: 'info', title: '检查更新', message: '已是最新版本', detail: `当前版本 v${r.current}`, buttons: ['知道了'] });
+      }
+    });
+  }
   else if (cmd === 'open-install-log') shell.openPath(path.join(userDataDir, 'plugin-install.log'));
   else if (cmd === 'open-terminal') openTerminal();
   else if (cmd === 'about') showAbout();

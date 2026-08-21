@@ -24,6 +24,8 @@
       uiTitlebar: '\u81EA\u7ED8\u6807\u9898\u680F', uiChip: 'Token \u80F6\u56CA', uiProgress: '\u4EFB\u52A1\u8FDB\u5EA6\u6761',
       winPin: '\u7A97\u53E3\u7F6E\u9876', winAutoStart: '\u5F00\u673A\u81EA\u542F\u52A8', winNotify: '\u4EFB\u52A1\u5B8C\u6210\u901A\u77E5',
       toolsRestart: '\u91CD\u542F\u672C\u5730\u670D\u52A1\u5E76\u91CD\u8F7D', toolsPort: '\u66F4\u6539\u670D\u52A1\u7AEF\u53E3\u2026', toolsConfig: '\u6253\u5F00\u914D\u7F6E\u6587\u4EF6\u5939', toolsLogs: '\u6253\u5F00\u670D\u52A1\u65E5\u5FD7', toolsInstallLog: '\u6253\u5F00\u63D2\u4EF6\u5B89\u88C5\u65E5\u5FD7', toolsTerminal: '\u5728\u5DE5\u4F5C\u533A\u6253\u5F00\u7EC8\u7AEF', toolsDevtools: '\u5F00\u53D1\u8005\u5DE5\u5177', toolsAbout: '\u5173\u4E8E\u684C\u9762\u7248',
+      toolsDiag: '\u5BFC\u51FA\u8BCA\u65AD\u5305',
+      toolsUpdate: '\u68C0\u67E5\u66F4\u65B0',
       toolsLogo: '\u81EA\u5B9A\u4E49\u56FE\u6807\uFF08\u754C\u9762 + exe\uFF09\u2026', toolsIconReset: '\u6062\u590D\u9ED8\u8BA4\u56FE\u6807',
       paPlaceholder: '\u8F93\u5165\u547D\u4EE4\u6216\u641C\u7D22\u2026', paFoot: '\u2191\u2193 \u9009\u62E9 \u00B7 Enter \u6267\u884C \u00B7 Esc \u5173\u95ED',
       paStore: '\u63D2\u4EF6\u5546\u5E97',
@@ -34,6 +36,7 @@
       paRestart: '\u91CD\u542F\u672C\u5730\u670D\u52A1\u5E76\u91CD\u8F7D',
       paPort: '\u66F4\u6539\u670D\u52A1\u7AEF\u53E3\u2026', paConfig: '\u6253\u5F00\u914D\u7F6E\u6587\u4EF6\u5939', paLogs: '\u6253\u5F00\u670D\u52A1\u65E5\u5FD7', paInstallLog: '\u6253\u5F00\u63D2\u4EF6\u5B89\u88C5\u65E5\u5FD7',
       paTerminal: '\u5728\u5DE5\u4F5C\u533A\u6253\u5F00\u7EC8\u7AEF', paDevtools: '\u5F00\u53D1\u8005\u5DE5\u5177', paAbout: '\u5173\u4E8E\u684C\u9762\u7248',
+      paUpdate: '\u68C0\u67E5\u66F4\u65B0', paLogo: '\u81EA\u5B9A\u4E49\u56FE\u6807\uFF08\u754C\u9762 + exe\uFF09\u2026', paIconReset: '\u6062\u590D\u9ED8\u8BA4\u56FE\u6807', paDiag: '\u5BFC\u51FA\u8BCA\u65AD\u5305', paPathAdd: '\u7CFB\u7EDF\u7EC8\u7AEF\u4E5F\u80FD\u7528 Node\uFF08\u52A0\u5165\u7528\u6237 PATH\uFF09',
       termTip: '\u6253\u5F00\u7EC8\u7AEF\u9762\u677F\uFF08\u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55\uFF09',
       docTip: '\u6253\u5F00\u6587\u6863\u9605\u8BFB\uFF08Markdown/\u6587\u672C/\u4EE3\u7801\uFF09',
       cpSplash: '\u{1F680} \u542F\u52A8\u754C\u9762',
@@ -49,6 +52,8 @@
       uiTitlebar: 'Custom titlebar', uiChip: 'Token chip', uiProgress: 'Task progress bar',
       winPin: 'Always on top', winAutoStart: 'Launch at startup', winNotify: 'Task completion notifications',
       toolsRestart: 'Restart local service & reload', toolsPort: 'Change server port\u2026', toolsConfig: 'Open config folder', toolsLogs: 'Open server log', toolsInstallLog: 'Open plugin install log', toolsTerminal: 'Open terminal in workspace', toolsDevtools: 'Developer tools', toolsAbout: 'About desktop app',
+      toolsDiag: 'Export diagnostics package',
+      toolsUpdate: 'Check for updates',
       toolsLogo: 'Custom icon (UI + exe)\u2026', toolsIconReset: 'Restore default icon',
       paPlaceholder: 'Type a command or search\u2026', paFoot: '\u2191\u2193 select \u00B7 Enter run \u00B7 Esc close',
       paStore: 'Plugin store',
@@ -59,6 +64,7 @@
       paRestart: 'Restart local service & reload',
       paPort: 'Change server port\u2026', paConfig: 'Open config folder', paLogs: 'Open server log', paInstallLog: 'Open plugin install log',
       paTerminal: 'Open terminal in workspace', paDevtools: 'Developer tools', paAbout: 'About desktop app',
+      paUpdate: 'Check for updates', paLogo: 'Custom icon (UI + exe)\u2026', paIconReset: 'Restore default icon', paDiag: 'Export diagnostics package', paPathAdd: 'Make Node available in system terminals',
       termTip: 'Open terminal panel (working directory)',
       docTip: 'Open document reader (Markdown/text/code)',
       cpSplash: '\u{1F680} Splash screen',
@@ -2124,17 +2130,9 @@
     });
     // 工具
     sec = cpAddSection(body, T('cpTools'));
-    cpRow(sec, T('toolsRestart'), 'btn', {}, function () { win('restart-service'); });
-    cpRow(sec, T('toolsPort'), 'btn', {}, function () { win('port'); });
-    cpRow(sec, T('toolsConfig'), 'btn', {}, function () { win('open-config'); });
-    cpRow(sec, T('toolsLogo'), 'btn', {}, function () { win('icon-choose'); });
-    cpRow(sec, T('toolsIconReset'), 'btn', {}, function () { win('icon-reset'); });
-    cpRow(sec, T('toolsLogs'), 'btn', {}, function () { win('open-logs'); });
-    cpRow(sec, T('toolsInstallLog'), 'btn', {}, function () { win('open-install-log'); });
-    cpRow(sec, T('toolsTerminal'), 'btn', {}, function () { win('open-terminal'); });
-    cpRow(sec, lang === 'en' ? 'Make Node available in system terminals (add to user PATH)' : '\u7CFB\u7EDF\u7EC8\u7AEF\u4E5F\u80FD\u7528 Node\uFF08\u52A0\u5165\u7528\u6237 PATH\uFF09', 'btn', {}, function () { win('path-add'); });
-    cpRow(sec, T('toolsDevtools'), 'btn', {}, function () { win('devtools'); });
-    cpRow(sec, T('toolsAbout'), 'btn', {}, function () { win('about'); });
+    TOOL_ACTIONS.forEach(function (a) {
+      cpRow(sec, T(a.label), 'btn', {}, a.run);
+    });
   }
 
   function ensureControlPanel() {
@@ -2209,6 +2207,23 @@
   function win(cmd, arg) {
     if (desktop.winAction) desktop.winAction(arg === undefined ? cmd : cmd + ':' + arg);
   }
+  // 工具类命令：命令面板与控制面板「工具」区共享的单一配置源。
+  // 新增工具按钮只需在这里加一项，两个入口自动同步。
+  var TOOL_ACTIONS = [
+    { id: 'restart', label: 'paRestart', run: function () { win('restart-service'); } },
+    { id: 'update', label: 'paUpdate', run: function () { win('check-update'); } },
+    { id: 'port', label: 'paPort', run: function () { win('port'); } },
+    { id: 'config', label: 'paConfig', run: function () { win('open-config'); } },
+    { id: 'logo', label: 'paLogo', run: function () { win('icon-choose'); } },
+    { id: 'icon-reset', label: 'paIconReset', run: function () { win('icon-reset'); } },
+    { id: 'logs', label: 'paLogs', run: function () { win('open-logs'); } },
+    { id: 'diag', label: 'paDiag', run: function () { win('export-diag'); } },
+    { id: 'install-log', label: 'paInstallLog', run: function () { win('open-install-log'); } },
+    { id: 'terminal', label: 'paTerminal', run: function () { win('open-terminal'); } },
+    { id: 'path-add', label: 'paPathAdd', run: function () { win('path-add'); } },
+    { id: 'devtools', label: 'paDevtools', run: function () { win('devtools'); } },
+    { id: 'about', label: 'paAbout', run: function () { win('about'); } },
+  ];
   // 命令面板条目 = 控制面板已有功能的子集（与 CP 内容一一对应）
   var PALETTE_ACTIONS = [
     { id: 'bg-choose', label: 'paBgChoose', hint: 'paBgChooseH', run: function () { win('bg-choose'); } },
@@ -2218,15 +2233,7 @@
     { id: 'pin', label: 'paPin', run: function () { win('pin-toggle'); } },
     { id: 'notify', label: 'paNotify', run: function () { win('notify-toggle'); } },
     { id: 'autostart', label: 'paAutostart', run: function () { win('autostart-toggle'); } },
-    { id: 'restart', label: 'paRestart', run: function () { win('restart-service'); } },
-    { id: 'port', label: 'paPort', run: function () { win('port'); } },
-    { id: 'config', label: 'paConfig', run: function () { win('open-config'); } },
-    { id: 'logs', label: 'paLogs', run: function () { win('open-logs'); } },
-    { id: 'install-log', label: 'paInstallLog', run: function () { win('open-install-log'); } },
-    { id: 'terminal', label: 'paTerminal', run: function () { win('open-terminal'); } },
-    { id: 'devtools', label: 'paDevtools', run: function () { win('devtools'); } },
-    { id: 'about', label: 'paAbout', run: function () { win('about'); } },
-  ];
+  ].concat(TOOL_ACTIONS);
 
   function ensurePalette() {
     if (paletteEl) return;
