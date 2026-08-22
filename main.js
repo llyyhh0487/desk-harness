@@ -10,7 +10,6 @@ const os = require('os');
 const http = require('http');
 const { spawn, spawnSync, execFile } = require('child_process');
 const { nodeVerOk, sanitizeShellArg, htmlDecode, parseStarsText } = require('./lib/pure');
-const { autoUpdater } = require('electron-updater');
 
 // dshbg:// 本地媒体协议：壁纸图片/视频不再 base64 内嵌（大幅加快启动与配置推送）
 protocol.registerSchemesAsPrivileged([
@@ -3920,14 +3919,24 @@ async function runningSessionTitles() {
 // ---------------------------------------------------------------------------
 let updaterReady = false;
 let updaterChecking = false;
+let autoUpdaterRef = null;
 
-// 只在打包版可用（开发模式无 latest.yml 更新源）；首次检查前才初始化，避免每次启动都请求。
+// 只在打包版可用（开发模式无 latest.yml 更新源）；首次检查前才惰性加载，
+// 避免 electron-updater 在 app ready 前或非 Electron 环境被 require 导致崩溃。
 function ensureUpdater() {
   if (updaterReady) return true;
   if (!app.isPackaged) return false;
-  autoUpdater.autoDownload = false;        // 先提示，用户确认后再下载
-  autoUpdater.autoInstallOnAppQuit = true; // 下载完成后退出时静默安装
-  autoUpdater.on('error', (e) => log('updater error:', e && (e.stack || e.message || e)));
+  try {
+    if (autoUpdaterRef === null) {
+      autoUpdaterRef = require('electron-updater').autoUpdater;
+      autoUpdaterRef.autoDownload = false;        // 先提示，用户确认后再下载
+      autoUpdaterRef.autoInstallOnAppQuit = true; // 下载完成后退出时静默安装
+      autoUpdaterRef.on('error', (e) => log('updater error:', e && (e.stack || e.message || e)));
+    }
+  } catch (e) {
+    log('updater init failed:', e && (e.message || e));
+    return false;
+  }
   updaterReady = true;
   return true;
 }
@@ -3938,9 +3947,9 @@ async function checkForUpdate() {
   if (updaterChecking) return { ok: false, reason: 'busy' };
   updaterChecking = true;
   try {
-    const result = await autoUpdater.checkForUpdates();
+    const result = await autoUpdaterRef.checkForUpdates();
     const info = result && result.updateInfo;
-    const current = autoUpdater.currentVersion && autoUpdater.currentVersion.version;
+    const current = autoUpdaterRef.currentVersion && autoUpdaterRef.currentVersion.version;
     const latest = info && info.version;
     return {
       ok: true,
@@ -3959,7 +3968,7 @@ async function checkForUpdate() {
 // 下载并安装更新（用户确认后调用）。
 function downloadUpdate() {
   if (!ensureUpdater()) return;
-  autoUpdater.once('update-downloaded', (info) => {
+  autoUpdaterRef.once('update-downloaded', (info) => {
     const r = dialog.showMessageBoxSync(mainWin, {
       type: 'info',
       title: '更新已就绪',
@@ -3968,9 +3977,9 @@ function downloadUpdate() {
       buttons: ['立即重启', '稍后'],
       defaultId: 0, cancelId: 1,
     });
-    if (r === 0) autoUpdater.quitAndInstall(false, true);
+    if (r === 0) autoUpdaterRef.quitAndInstall(false, true);
   });
-  autoUpdater.downloadUpdate().catch((e) => {
+  autoUpdaterRef.downloadUpdate().catch((e) => {
     log('updater download failed:', e && (e.message || e));
     dialog.showErrorBox('下载更新失败', String((e && e.message) || e));
   });
