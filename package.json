@@ -1,6 +1,6 @@
 {
   "name": "deepseekharness-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DESK HARNESS — DeepSeek Harness 的 Windows 桌面壳（保留网页版全部功能）",
   "private": true,
   "main": "main.js",
