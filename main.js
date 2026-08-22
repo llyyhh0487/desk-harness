@@ -10,6 +10,7 @@ const os = require('os');
 const http = require('http');
 const { spawn, spawnSync, execFile } = require('child_process');
 const { nodeVerOk, sanitizeShellArg, htmlDecode, parseStarsText } = require('./lib/pure');
+const { dshSignal, featuredScore, computeFeatured } = require('./lib/store-ranking');
 
 // dshbg:// 本地媒体协议：壁纸图片/视频不再 base64 内嵌（大幅加快启动与配置推送）
 protocol.registerSchemesAsPrivileged([
@@ -2061,62 +2062,8 @@ async function storeRefreshAndPush() {
   await performStoreRefresh();
 }
 
-// 精选区：人工种子清单 + 自动评分补齐到 24 个。
+// 精选区：人工种子清单 + 自动评分补齐到 24 个（已提取到 ./lib/store-ranking）。
 // 评分依据客观信号：星标 + 维护活跃度 + DSH 相关性 + npm 发布（无人为干预）
-const FEATURED_PLUGINS = [
-  'deepseek-ai/deepseek-harness',
-  'npm/deepseek-vision',
-  'npm/a4phone',
-  'npm/@yun520-1/deepseek-heartflow',
-  'npm/dsh-webgate',
-  'npm/dsh-plugin-writing-guard',
-  'npm/dsh-image-pathify',
-  'npm/dsh-persist',
-  'npm/dsh-plugin-file-explorer',
-  'npm/dsh-balance-monitor',
-  'npm/jingqing',
-  'npm/create-dsh-plugin',
-];
-const FEATURED_TOTAL = 24;
-function dshSignal(r) {
-  const topics = ((r.topics || []).join(' ').toLowerCase());
-  const desc = String(r.desc || '').toLowerCase();
-  const name = String(r.fullName || '').toLowerCase();
-  return /(^|[^a-z])dsh([^a-z]|$)/.test(desc + ' ' + name)
-    || desc.indexOf('deepseek harness') >= 0
-    || topics.indexOf('dsh-plugin') >= 0
-    || topics.indexOf('deepseek-harness') >= 0;
-}
-function featuredScore(r) {
-  let s = 0;
-  const desc = String(r.desc || '').toLowerCase();
-  const name = String(r.fullName || '').toLowerCase();
-  // DSH 相关性为主
-  if (/(^|[^a-z])dsh([^a-z]|$)/.test(desc + ' ' + name) || desc.indexOf('deepseek harness') >= 0) s += 80;
-  const topics = ((r.topics || []).join(' ').toLowerCase());
-  if (topics.indexOf('dsh-plugin') >= 0 || topics.indexOf('deepseek-harness') >= 0) s += 60;
-  // 维护活跃度
-  const days = r.updatedAt ? (Date.now() - new Date(r.updatedAt).getTime()) / 86400000 : 9999;
-  if (days <= 30) s += 50;
-  else if (days <= 90) s += 30;
-  // 星标（封顶 200，避免大牌仓库霸榜）
-  s += Math.min(r.stars || 0, 200);
-  // npm 官方发布
-  if (r.fromNpm) s += 10;
-  return s;
-}
-function computeFeatured(repos) {
-  const curated = FEATURED_PLUGINS.map((f) => f.toLowerCase());
-  const byCurated = repos.filter((r) => curated.indexOf(String(r.fullName).toLowerCase()) >= 0);
-  // 自动补齐池：必须明确是 DSH 插件（描述/名字/标签含 DSH 信号），再按评分排序
-  const rest = repos
-    .filter((r) => curated.indexOf(String(r.fullName).toLowerCase()) < 0 && dshSignal(r))
-    .map((r) => ({ r, s: featuredScore(r) }))
-    .sort((a, b) => b.s - a.s)
-    .slice(0, Math.max(0, FEATURED_TOTAL - byCurated.length))
-    .map((x) => x.r);
-  return byCurated.concat(rest).slice(0, FEATURED_TOTAL);
-}
 
 ipcMain.handle('store:index', async () => {
   const installed = installedPlugins();

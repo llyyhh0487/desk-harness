@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/pure.test.js",
+    "test": "node --test test/*.test.js",
     "pack": "electron-builder --win nsis",
     "pack:dir": "electron-builder --dir"
   },
