@@ -71,16 +71,6 @@
     "npmRebuild": false,
     "win": {
       "icon": "build/icon.ico",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
-      "signtoolOptions": {
-        "sign": {
-          "target": "sha256",
-          "description": "DESK HARNESS - DeepSeek Harness desktop shell",
-          "url": "https://github.com/llyyhh0487/desk-harness"
-        }
-      },
       "target": [
         {
           "target": "nsis",
