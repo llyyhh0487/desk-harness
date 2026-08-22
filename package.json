@@ -27,7 +27,8 @@
     "start": "electron .",
     "test": "node --test test/*.test.js",
     "pack": "electron-builder --win nsis",
-    "pack:dir": "electron-builder --dir"
+    "pack:dir": "electron-builder --dir",
+    "publish": "electron-builder --win nsis --publish always"
   },
   "build": {
     "appId": "com.deepseek.harness.desktop",
@@ -70,6 +71,16 @@
     "npmRebuild": false,
     "win": {
       "icon": "build/icon.ico",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "signtoolOptions": {
+        "sign": {
+          "target": "sha256",
+          "description": "DESK HARNESS - DeepSeek Harness desktop shell",
+          "url": "https://github.com/llyyhh0487/desk-harness"
+        }
+      },
       "target": [
         {
           "target": "nsis",

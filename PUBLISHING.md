@@ -1,60 +1,107 @@
-﻿# 发布指南（GitHub）
+# DESK HARNESS 发布指南（GitHub）
 
-把 DESK HARNESS 发布到 GitHub 并让它出现在 [github.com/topics/dsh-plugin](https://github.com/topics/dsh-plugin) 的完整步骤。
+把 DESK HARNESS 发布到 GitHub 的完整步骤：仓库准备 → 自动发布（含 latest.yml）→ 代码签名 → 主题收录。
 
-## 1. 准备仓库
+---
+
+## 1. 准备仓库（首次）
 
 ```powershell
 cd desktop
 git init -b main
-git add .                    # .gitignore 已排除 node_modules / dist / 日志
+git add .
 git commit -m "DESK HARNESS 1.0.0"
 ```
 
-## 2. 创建 GitHub 仓库并推送
+## 2. 创建 GitHub 仓库并推送（首次）
 
-1. 登录 GitHub → 右上角 **+** → **New repository**；
-2. 仓库名建议 `desk-harness`，可见性 Public，**不要**勾选自动生成 README（本目录已有）；
-3. 关联并推送：
+1. GitHub → **+** → **New repository**，名 `desk-harness`，Public，不勾自动 README；
+2. 关联推送：
 
 ```powershell
 git remote add origin https://github.com/<你的用户名>/desk-harness.git
 git push -u origin main
 ```
 
-4. 推送后把 `package.json` 里 `repository` / `homepage` / `bugs` 三处的
-   `<你的用户名>/desk-harness` 占位符替换成真实地址，再提交一次。
+3. 把 `package.json` 里 `repository` / `homepage` / `bugs` / `build.publish` 的
+   `llyyhh0487` 替换成你的用户名，提交。
 
-## 3. 发布安装包（Release）
+## 3. 自动发布（推荐，激活内置自动更新）
 
-1. 仓库页 → **Releases** → **Draft a new release**；
-2. Tag 填 `v1.0.0`（或 **Create new tag**），标题 `DESK HARNESS 1.0.0`；
-3. 把 `dist/desk-harness-setup-1.0.0.exe` 拖入附件区；
-4. 勾选 **Set as the latest release** → **Publish release**。
+桌面端已内置 electron-updater，但需要发布时上传 `latest.yml` 才能让"检查更新"生效。
 
-## 4. 添加 dsh-plugin 主题
+### 前置
 
-1. 仓库主页右上角 **About** 区域点 ⚙（齿轮）；
-2. 在 **Topics** 输入框键入 `dsh-plugin`（匹配到既有主题直接点击即可）；
-3. 可再加几个：`deepseek` `deepseek-harness` `electron` `windows`；
-4. 点 **Save changes**。
+1. GitHub Token：`repo` 权限（https://github.com/settings/tokens → Generate new token (classic) → 勾 `repo`）
+2. 每次发布前把 `package.json` 的 `version` 加一（如 1.0.0 → 1.0.1）
 
-主题规则（官方文档：[Classifying your repository with topics](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)）：
-- 只用小写字母、数字、连字符；每个 ≤ 50 字符；最多 20 个。
+### 执行
 
-## 5. 效果确认
+```powershell
+cd desktop
 
-- 打开 https://github.com/topics/dsh-plugin 能看到你的仓库；
-- DESK HARNESS 插件商店的索引来源之一就是 GitHub topic `dsh-plugin` 与
-  Search API（`topic:dsh-plugin`），索引 15 分钟冷却 + 打开商店时后台刷新，
-  新仓库一般在数分钟到数小时内进入商店索引；
-- 商店 README 双语翻译与描述抓取也来自该仓库的 README 与 About 描述。
+# 国内镜像（防下载 Electron 二进制超时）
+$env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
+$env:ELECTRON_BUILDER_BINARIES_MIRROR = "https://npmmirror.com/mirrors/electron-builder-binaries/"
+
+$env:GH_TOKEN = "<repo 权限 token>"
+
+npm run publish
+```
+
+`npm run publish` = `electron-builder --win nsis --publish always`，自动完成：
+打包 exe → 生成 `latest.yml` → 上传到 GitHub Release（tag 与 version 对应）→ 无 tag 则自动创建。
+
+发布后，旧版本用户点「检查更新」即收到新版本。
+
+---
+
+## 4. 代码签名（可选但强烈推荐）
+
+未签名 exe 会被 SmartScreen 报"未知发布者"，且更新包校验失去安全意义。
+
+### 证书获取
+
+- **OV 证书**（推荐）：约 $200-300/年，DigiCert / Sectigo / 亚洲诚信等
+- **EV 证书**：更贵，直接获得 SmartScreen 信誉不弹警告
+- 自签名：免费但无 SmartScreen 信誉，仅内部分发测试
+
+### 签名（用环境变量，不改代码）
+
+```powershell
+$env:CSC_LINK = "D:\path\to\cert.pfx"
+$env:CSC_KEY_PASSWORD = "<证书密码>"
+
+npm run publish   # 或 npm run pack
+```
+
+> 证书路径/密码是敏感信息，**不要写进 package.json 或提交 git**。
+
+### 完整发布（签名 + 自动更新一步到位）
+
+```powershell
+$env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
+$env:ELECTRON_BUILDER_BINARIES_MIRROR = "https://npmmirror.com/mirrors/electron-builder-binaries/"
+$env:GH_TOKEN = "<repo 权限 token>"
+$env:CSC_LINK = "D:\path\to\cert.pfx"
+$env:CSC_KEY_PASSWORD = "<证书密码>"
+
+npm run publish
+```
+
+---
+
+## 5. 添加 dsh-plugin 主题（让商店收录）
+
+1. 仓库主页 → About 区 ⚙ → Topics 输入 `dsh-plugin`；
+2. 可加 `deepseek` `deepseek-harness` `electron` `windows`；
+3. Save changes。
+
+规则：小写字母/数字/连字符，每个 ≤ 50 字符，最多 20 个。
+
+---
 
 ## 注意事项
 
-- 本仓库是**桌面壳**而非 dsh 插件包：它没有 `dsh.bundle` 声明，商店索引按
-  DSH 信号过滤后仍会收录它（名字/描述含 deepseek-harness），用户点"安装"时
-  会作为普通依赖安装、不会作为插件层加载——这符合预期（商店同时是发现入口）；
-  若不想出现在商店索引里，就不要添加 `dsh-plugin` 主题，仅保留其他主题。
-- 图标与品牌：`build/icon.ico`、`build/logo-256.png`、启动页/标题栏名称为
-  **DESK HARNESS**；后端（dsh）仍叫 DeepSeek Harness，二者是壳与内核的关系。
+- 本仓库是**桌面壳**而非 dsh 插件包（无 `dsh.bundle` 声明），商店收录它是作为"发现入口"，用户点安装会作为普通依赖装，不会作为插件层加载——符合预期；不想进商店就别加 `dsh-plugin` 主题。
+- 后端（dsh）仍叫 DeepSeek Harness，DESK HARNESS 是壳的名字，二者是壳与内核关系。
