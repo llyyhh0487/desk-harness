@@ -3832,10 +3832,14 @@ function reconnect() {
 }
 
 // 返回当前正在运行（running）的会话标题列表，用于重启/关闭前的活跃任务警告。
+// 最多等 1.5 秒：超时/失败返回空列表，确认框仍会弹出（只是不含会话警告）。
 async function runningSessionTitles() {
   try {
-    const items = await sessionListFetch();
-    const running = items.filter((s) => s && s.running);
+    const items = await Promise.race([
+      sessionListFetch(),
+      new Promise((resolve) => setTimeout(() => resolve([]), 1500)),
+    ]);
+    const running = (Array.isArray(items) ? items : []).filter((s) => s && s.running);
     return running.map((s) => {
       const t = s.projections && s.projections.values && s.projections.values.title;
       return t || (s.sessionId ? s.sessionId.slice(-8) : '');
@@ -4461,12 +4465,13 @@ ipcMain.on('win:action', async (_e, a) => {
   else if (cmd === 'close') mainWin.close();
   else if (cmd === 'devtools') mainWin.webContents.toggleDevTools();
   else if (cmd === 'restart-service') {
-    // 引导重启：先查活跃会话，再按风险给确认。重启会中断正在运行的任务。
-    runningSessionTitles().then((running) => {
-      const hasRunning = running.length > 0;
+    // 引导重启：立即弹确认框；活跃会话信息尽力附加（查不到/失败也不阻塞确认）。
+    const baseDetail = '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n若你只是改了插件代码/配置，重启后即可生效。';
+    const confirm = (running) => {
+      const hasRunning = Array.isArray(running) && running.length > 0;
       const detail = hasRunning
         ? '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n⚠️ 检测到以下会话正在运行，重启会中断它们：\n' + running.slice(0, 5).map((t) => '  • ' + t).join('\n') + (running.length > 5 ? '\n  …等共 ' + running.length + ' 个会话' : '') + '\n\n若你只是改了插件代码/配置，重启后即可生效。'
-        : '重启会停止并重新拉起 3080 端口上的服务，然后自动重载页面。\n\n当前没有检测到正在运行的会话。\n\n若你只是改了插件代码/配置，重启后即可生效。';
+        : baseDetail;
       const r = dialog.showMessageBoxSync(mainWin, {
         type: hasRunning ? 'warning' : 'question',
         title: '重启本地服务并重载',
@@ -4478,7 +4483,9 @@ ipcMain.on('win:action', async (_e, a) => {
         noLink: true,
       });
       if (r === 1) restartServiceHard();
-    });
+    };
+    // 先立即弹窗（不等待查询）；会话信息异步补充，若服务未启动则直接弹基础确认。
+    runningSessionTitles().then(confirm).catch(() => confirm([]));
   }
   else if (cmd === 'restart-app') restartApp();
   else if (cmd === 'open-usage') shell.openExternal('https://platform.deepseek.com/usage');
